@@ -5,7 +5,7 @@ Architecture of any repository, one layer at a time.
 Strata has two parts:
 
 1. **`/strata` skill for Claude Code** (`skill/`). It reads a repository and explains it at a chosen level of detail. It builds an offline AST graph with [graphify](https://pypi.org/project/graphifyy/), rolls the graph up to modules, and then checks the picture against the real code (HTTP calls, queues, stores, process boundaries).
-2. **Viewer** (`docs/`, served at **https://kushshriv.github.io/strata/**). A static page that draws the skill's JSON output as a zoomable map.
+2. **Viewer** (`docs/`, served at **https://kushshriv.github.io/strata/**). A static page that draws the skill's JSON output as hand-drawn, zoomable sketches (dagre layout + rough.js). It uses the same colours, type and theme switch as [kushshriv.github.io](https://kushshriv.github.io/), and the theme choice carries over between the two sites.
 
 | Level | View in the viewer |
 |---|---|
@@ -52,7 +52,7 @@ The skill prints its answer and a line like `Open in Strata: https://kushshriv.g
 
 ## Security
 
-The viewer treats every input as untrusted. It inserts text with `textContent`. Markdown raw HTML is escaped, then sanitised with DOMPurify. Mermaid runs with `securityLevel: "strict"`. A strict CSP blocks inline scripts, and pinned CDN scripts load with SRI.
+The viewer treats every input as untrusted. Diagram text and page text are set with `textContent`; raw HTML in markdown is escaped, then sanitised with DOMPurify. A strict CSP blocks inline scripts, and pinned CDN scripts load with SRI.
 
 ## Layout
 
