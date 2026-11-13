@@ -1,0 +1,4 @@
+[
+ {"map": "distributed-load-testing", "title": "Distributed Load Testing System", "blurb": "University prototype on Flask + Kafka + Streamlit, plus a stdlib local load tester with mutual-TLS remote drivers.", "tags": ["Python", "Kafka", "mTLS"], "repo": "https://github.com/KushShriv/Distributed-Load-Testing-System"},
+ {"map": "vercel-clone", "title": "Vercel Clone for React Projects", "blurb": "Three Express services on Redis + S3, plus a local Docker-sandboxed builder that publishes to S3 + CloudFront.", "tags": ["TypeScript", "Redis", "Docker"], "repo": "https://github.com/KushShriv/Vercel-Clone-for-React-Projects"}
+]

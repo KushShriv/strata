@@ -1,0 +1,783 @@
+{
+ "schema": "strata/1",
+ "repo": {
+  "name": "distributed-load-testing",
+  "url": "https://github.com/KushShriv/Distributed-Load-Testing-System",
+  "commit": "30e1f9e",
+  "generated": "2026-11-13",
+  "languages": [
+   {
+    "lang": "Python",
+    "files": 13,
+    "lines": 1426
+   },
+   {
+    "lang": "Shell",
+    "files": 2,
+    "lines": 42
+   }
+  ],
+  "levels": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ]
+ },
+ "confidence": {
+  "score": 85,
+  "label": "High",
+  "basis": "Read every entry point, all Kafka topics and HTTP routes, and the local/remote run path. 'Legacy' label for the prototype rests on git history and README wording."
+ },
+ "l0": {
+  "shape": "Two separate systems in one repo: the original university prototype (Flask + Kafka + Streamlit) and a newer stdlib-only local load tester with optional mutual-TLS remote drivers.",
+  "summary": "A load-testing tool that fires HTTP requests at a target and reports latency. The 2024 prototype coordinates driver processes through five Kafka topics and keeps results in JSON files read by a Flask orchestrator and a Streamlit dashboard. The 2026 rewrite runs as one Python process on 127.0.0.1 behind a pairing token, uses worker threads per run, and can split a run across remote drivers over mutual TLS. The two systems share no runtime path.",
+  "stack": [
+   "Python",
+   "Flask",
+   "Kafka (kafka-python)",
+   "Streamlit",
+   "http.server (stdlib)",
+   "TLS 1.2+ mTLS",
+   "Static HTML dashboard"
+  ],
+  "entry_points": [
+   {
+    "path": "start.sh",
+    "role": "Creates .venv, starts local_service.py"
+   },
+   {
+    "path": "local_service.py:257",
+    "role": "Local service main: 127.0.0.1:8765, prints pairing code"
+   },
+   {
+    "path": "remote_driver.py:101",
+    "role": "Optional remote driver (mTLS, explicit --bind)"
+   },
+   {
+    "path": "orchestrator.py:24",
+    "role": "Prototype: Flask /tsunami and /avalanche"
+   },
+   {
+    "path": "driver.py:127",
+    "role": "Prototype: driver node process"
+   },
+   {
+    "path": "kafka-client.py:98",
+    "role": "Prototype: topic consumer and result writer"
+   },
+   {
+    "path": "frontend.py",
+    "role": "Prototype: Streamlit dashboard"
+   },
+   {
+    "path": "target.py:14",
+    "role": "Prototype: sample target server :8080"
+   }
+  ]
+ },
+ "systems": [
+  {
+   "id": "proto",
+   "name": "Kafka prototype (university)",
+   "status": "legacy",
+   "launcher": "none (each process started by hand)",
+   "status_basis": "README calls it the original university prototype; its files were last changed 2024-07-20 (7544ac3) while start.sh launches only local_service.py",
+   "summary": "Orchestrator, drivers and an aggregator talk only through Kafka; results live in JSON files."
+  },
+  {
+   "id": "local",
+   "name": "Local load tester",
+   "status": "active",
+   "launcher": "start.sh",
+   "status_basis": "start.sh execs local_service.py; changed 2026-11-12",
+   "summary": "One stdlib Python service on 127.0.0.1 with a token-paired web dashboard and optional mTLS drivers."
+  }
+ ],
+ "components": [
+  {
+   "id": "streamlit",
+   "name": "Streamlit dashboard",
+   "system": "proto",
+   "kind": "frontend",
+   "tech": "Streamlit + pandas",
+   "paths": [
+    "frontend"
+   ],
+   "entry": "frontend.py",
+   "summary": "Pages for metrics, node status and test config; polls the orchestrator.",
+   "evidence": [
+    "frontend.py:21",
+    "frontend.py:95"
+   ]
+  },
+  {
+   "id": "orchestrator",
+   "name": "Orchestrator",
+   "system": "proto",
+   "kind": "service",
+   "tech": "Flask :5000",
+   "paths": [
+    "orchestrator"
+   ],
+   "entry": "orchestrator.py:24",
+   "summary": "Starts tsunami/avalanche tests by publishing test_config; serves results read from JSON files.",
+   "evidence": [
+    "orchestrator.py:15",
+    "orchestrator.py:38",
+    "orchestrator.py:65"
+   ]
+  },
+  {
+   "id": "kafka",
+   "name": "Kafka broker",
+   "system": "proto",
+   "kind": "queue",
+   "tech": "localhost:9092 · topics register, test_config, trigger, metrics, heartbeat",
+   "summary": "The only channel between orchestrator, aggregator and drivers.",
+   "evidence": [
+    "kafka-client.py:11",
+    "orchestrator.py:15"
+   ]
+  },
+  {
+   "id": "aggregator",
+   "name": "Kafka client (aggregator)",
+   "system": "proto",
+   "kind": "worker",
+   "tech": "kafka-python, 2 threads",
+   "paths": [
+    "kafka-client"
+   ],
+   "entry": "kafka-client.py:98",
+   "summary": "Consumes every topic, turns test_config into trigger, records nodes and metrics to JSON files.",
+   "evidence": [
+    "kafka-client.py:77",
+    "kafka-client.py:93"
+   ]
+  },
+  {
+   "id": "drivers",
+   "name": "Driver nodes",
+   "system": "proto",
+   "kind": "worker",
+   "tech": "Python process × N",
+   "paths": [
+    "driver"
+   ],
+   "entry": "driver.py:127",
+   "summary": "Register, send heartbeats, run tsunami (fixed delay) or avalanche (no delay) tests and publish latency metrics.",
+   "evidence": [
+    "driver.py:42",
+    "driver.py:69",
+    "driver.py:103"
+   ]
+  },
+  {
+   "id": "target",
+   "name": "Sample target",
+   "system": "proto",
+   "kind": "service",
+   "tech": "Flask :8080",
+   "paths": [
+    "target"
+   ],
+   "entry": "target.py:14",
+   "summary": "/ping endpoint to load-test and a /metrics counter.",
+   "evidence": [
+    "target.py:25"
+   ]
+  },
+  {
+   "id": "jsonfiles",
+   "name": "JSON result files",
+   "system": "proto",
+   "kind": "store",
+   "tech": "metric_data.json, driver_nodes.json",
+   "summary": "Shared files: written by the aggregator, read by the orchestrator. Both must run in the same directory.",
+   "evidence": [
+    "kafka-client.py:74",
+    "orchestrator.py:68"
+   ]
+  },
+  {
+   "id": "dashboard",
+   "name": "Web dashboard",
+   "system": "local",
+   "kind": "frontend",
+   "tech": "Static HTML/JS (served at / and on GitHub Pages)",
+   "paths": [
+    "docs"
+   ],
+   "entry": "docs/index.html:12",
+   "summary": "Pair with the code from the terminal, start or cancel a run, poll results, export CSV. Calls http://127.0.0.1:8765.",
+   "evidence": [
+    "docs/index.html:15",
+    "local_service.py:195"
+   ]
+  },
+  {
+   "id": "localsvc",
+   "name": "Local service",
+   "system": "local",
+   "kind": "service",
+   "tech": "ThreadingHTTPServer 127.0.0.1:8765",
+   "paths": [
+    "local_service"
+   ],
+   "entry": "local_service.py:246",
+   "summary": "Pairing-token and Host/Origin checks, one active run at a time, worker threads that time requests and compute p50/p95/p99.",
+   "evidence": [
+    "local_service.py:172",
+    "local_service.py:222",
+    "local_service.py:111",
+    "local_service.py:138"
+   ]
+  },
+  {
+   "id": "coordinator",
+   "name": "Distributed coordinator",
+   "system": "local",
+   "kind": "library",
+   "tech": "distributed.py (in-process)",
+   "paths": [
+    "distributed"
+   ],
+   "entry": "distributed.py:70",
+   "summary": "Splits workers and count across drivers, starts slices, polls them, marks lost drivers, merges latencies.",
+   "evidence": [
+    "distributed.py:57",
+    "distributed.py:83",
+    "distributed.py:109",
+    "distributed.py:120"
+   ]
+  },
+  {
+   "id": "remote",
+   "name": "Remote drivers",
+   "system": "local",
+   "kind": "worker",
+   "tech": "HTTPS mTLS, explicit --bind",
+   "paths": [
+    "remote_driver"
+   ],
+   "entry": "remote_driver.py:101",
+   "summary": "Optional. Runs one slice with the same Run class as the local service; rejects clients without a CA-signed cert.",
+   "evidence": [
+    "remote_driver.py:19",
+    "remote_driver.py:13"
+   ]
+  },
+  {
+   "id": "tooling",
+   "name": "Release + cert tooling",
+   "system": "local",
+   "kind": "infra",
+   "tech": "build_release.py, make_certs.sh",
+   "paths": [
+    "build_release",
+    "make_certs"
+   ],
+   "summary": "Packs a release tarball; creates a private CA and driver/client certs for mTLS.",
+   "evidence": [
+    "build_release.py:17",
+    "make_certs.sh:11"
+   ]
+  },
+  {
+   "id": "anytarget",
+   "name": "Target URL",
+   "system": null,
+   "kind": "external",
+   "tech": "any http(s) URL",
+   "summary": "The system under test. Private or local addresses need explicit confirmation.",
+   "evidence": [
+    "local_service.py:66"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "from": "streamlit",
+   "to": "orchestrator",
+   "protocol": "http",
+   "label": "GET /tsunami, /avalanche, /get_metrics, /get_nodes",
+   "evidence": [
+    "frontend.py:95",
+    "frontend.py:97",
+    "frontend.py:21",
+    "frontend.py:39"
+   ]
+  },
+  {
+   "from": "orchestrator",
+   "to": "kafka",
+   "protocol": "queue",
+   "label": "produce test_config",
+   "evidence": [
+    "orchestrator.py:38"
+   ]
+  },
+  {
+   "from": "aggregator",
+   "to": "kafka",
+   "protocol": "queue",
+   "label": "consume all topics; produce trigger",
+   "evidence": [
+    "kafka-client.py:18",
+    "kafka-client.py:93"
+   ]
+  },
+  {
+   "from": "drivers",
+   "to": "kafka",
+   "protocol": "queue",
+   "label": "consume test_config/trigger; produce register, heartbeat, metrics",
+   "evidence": [
+    "driver.py:32",
+    "driver.py:65",
+    "driver.py:112",
+    "driver.py:133"
+   ]
+  },
+  {
+   "from": "drivers",
+   "to": "target",
+   "protocol": "http",
+   "label": "GET TARGET_URL, time each request",
+   "evidence": [
+    "driver.py:48",
+    "driver.py:75"
+   ]
+  },
+  {
+   "from": "aggregator",
+   "to": "jsonfiles",
+   "protocol": "storage",
+   "label": "write metrics + node status",
+   "evidence": [
+    "kafka-client.py:74",
+    "kafka-client.py:37"
+   ]
+  },
+  {
+   "from": "orchestrator",
+   "to": "jsonfiles",
+   "protocol": "storage",
+   "label": "read",
+   "evidence": [
+    "orchestrator.py:68",
+    "orchestrator.py:85"
+   ]
+  },
+  {
+   "from": "dashboard",
+   "to": "localsvc",
+   "protocol": "http",
+   "label": "/api/v1/runs (X-Pairing-Token)",
+   "evidence": [
+    "docs/index.html:15",
+    "local_service.py:222"
+   ]
+  },
+  {
+   "from": "localsvc",
+   "to": "anytarget",
+   "protocol": "http",
+   "label": "worker threads fetch(url)",
+   "evidence": [
+    "local_service.py:118",
+    "local_service.py:58"
+   ]
+  },
+  {
+   "from": "localsvc",
+   "to": "coordinator",
+   "protocol": "import",
+   "label": "POST /api/v1/distributed-runs",
+   "evidence": [
+    "local_service.py:235"
+   ]
+  },
+  {
+   "from": "coordinator",
+   "to": "remote",
+   "protocol": "http",
+   "label": "mTLS: POST /v1/runs slice, poll GET /v1/runs/<id>",
+   "evidence": [
+    "distributed.py:87",
+    "distributed.py:102"
+   ]
+  },
+  {
+   "from": "remote",
+   "to": "anytarget",
+   "protocol": "http",
+   "label": "same Run workers",
+   "evidence": [
+    "remote_driver.py:86"
+   ]
+  }
+ ],
+ "flows": [
+  {
+   "id": "proto-tsunami",
+   "name": "Tsunami test (Kafka prototype)",
+   "trigger": "Streamlit → GET /tsunami",
+   "system": "proto",
+   "steps": [
+    {
+     "from": "streamlit",
+     "to": "orchestrator",
+     "action": "GET /tsunami?delay&messages_per_driver",
+     "evidence": "frontend.py:97"
+    },
+    {
+     "from": "orchestrator",
+     "to": "kafka",
+     "action": "produce test_config {test_id, type, delay, count}",
+     "evidence": "orchestrator.py:38"
+    },
+    {
+     "from": "kafka",
+     "to": "drivers",
+     "action": "test_config → store_test",
+     "evidence": "driver.py:120"
+    },
+    {
+     "from": "kafka",
+     "to": "aggregator",
+     "action": "test_config",
+     "evidence": "kafka-client.py:87"
+    },
+    {
+     "from": "aggregator",
+     "to": "kafka",
+     "action": "produce trigger {test_id, trigger: YES}",
+     "evidence": "kafka-client.py:93"
+    },
+    {
+     "from": "kafka",
+     "to": "drivers",
+     "action": "trigger → trigger_test",
+     "evidence": "driver.py:122"
+    },
+    {
+     "from": "drivers",
+     "to": "target",
+     "action": "GET TARGET_URL, sleep(delay), repeat",
+     "evidence": "driver.py:48"
+    },
+    {
+     "from": "drivers",
+     "to": "kafka",
+     "action": "produce metrics {mean, median, min, max}",
+     "evidence": "driver.py:65"
+    },
+    {
+     "from": "aggregator",
+     "to": "jsonfiles",
+     "action": "metric_update → metric_data.json",
+     "evidence": "kafka-client.py:63"
+    },
+    {
+     "from": "streamlit",
+     "to": "orchestrator",
+     "action": "poll GET /get_metrics/<test_id>",
+     "evidence": "frontend.py:65"
+    },
+    {
+     "from": "orchestrator",
+     "to": "jsonfiles",
+     "action": "read metric_data.json",
+     "reply": true,
+     "evidence": "orchestrator.py:76"
+    }
+   ]
+  },
+  {
+   "id": "local-run",
+   "name": "Local run",
+   "trigger": "POST /api/v1/runs",
+   "system": "local",
+   "steps": [
+    {
+     "from": "dashboard",
+     "to": "localsvc",
+     "action": "connect with pairing code (X-Pairing-Token)",
+     "evidence": "docs/index.html:16"
+    },
+    {
+     "from": "dashboard",
+     "to": "localsvc",
+     "action": "POST /api/v1/runs {url, workers, count|duration, delay}",
+     "evidence": "docs/index.html:18"
+    },
+    {
+     "from": "localsvc",
+     "to": "localsvc",
+     "action": "guard, validate_config, refuse if a run is active",
+     "evidence": "local_service.py:222"
+    },
+    {
+     "from": "localsvc",
+     "to": "anytarget",
+     "action": "N worker threads: fetch(url) with DNS pin + private-address check",
+     "evidence": "local_service.py:111"
+    },
+    {
+     "from": "dashboard",
+     "to": "localsvc",
+     "action": "poll GET /api/v1/runs/<id>",
+     "evidence": "docs/index.html:19"
+    },
+    {
+     "from": "localsvc",
+     "to": "dashboard",
+     "action": "snapshot: status counts, throughput, p50/p95/p99",
+     "reply": true,
+     "evidence": "local_service.py:134"
+    },
+    {
+     "from": "dashboard",
+     "to": "localsvc",
+     "action": "GET /api/v1/runs/<id>/csv",
+     "evidence": "docs/index.html:23"
+    }
+   ]
+  },
+  {
+   "id": "distributed-run",
+   "name": "Distributed run (remote drivers)",
+   "trigger": "POST /api/v1/distributed-runs (DLT_DRIVERS set)",
+   "system": "local",
+   "steps": [
+    {
+     "from": "localsvc",
+     "to": "coordinator",
+     "action": "DistributedRun(config, drivers()).start()",
+     "evidence": "local_service.py:235"
+    },
+    {
+     "from": "coordinator",
+     "to": "coordinator",
+     "action": "plan_slices: split workers and count",
+     "evidence": "distributed.py:57"
+    },
+    {
+     "from": "coordinator",
+     "to": "remote",
+     "action": "mTLS POST /v1/runs slice",
+     "evidence": "distributed.py:87"
+    },
+    {
+     "from": "remote",
+     "to": "anytarget",
+     "action": "core.Run(config).start()",
+     "evidence": "remote_driver.py:86"
+    },
+    {
+     "from": "coordinator",
+     "to": "remote",
+     "action": "poll GET /v1/runs/<id>; 3 misses → lost",
+     "evidence": "distributed.py:102"
+    },
+    {
+     "from": "coordinator",
+     "to": "localsvc",
+     "action": "merge latencies, recompute percentiles",
+     "reply": true,
+     "evidence": "distributed.py:120"
+    }
+   ]
+  }
+ ],
+ "deep_dives": [
+  {
+   "id": "local-security",
+   "target": "localsvc",
+   "title": "Local service: request guard and SSRF limits",
+   "markdown": "## Why it matters\nThe service fires HTTP requests at user-supplied URLs from your machine, and its dashboard can be opened from GitHub Pages. Both are abuse paths.\n\n## Controls seen in code\n| Control | Where |\n|---|---|\n| Binds `127.0.0.1` only | `local_service.py:246` |\n| Exactly one `Host` header, must be `127.0.0.1:<port>` or `localhost:<port>` | `local_service.py:173` |\n| Origin allow-list: local origins + `https://kushshriv.github.io` | `local_service.py:169-171` |\n| Pairing token (`X-Pairing-Token`), compared with `hmac.compare_digest` | `local_service.py:182-184` |\n| Single `Content-Length`, no chunked bodies, 8 KB cap | `local_service.py:217-221` |\n| One active run; max 20 kept | `local_service.py:224-226` |\n| Target DNS resolved once and pinned; non-global address refused unless confirmed | `local_service.py:62-69` |\n\n## Remote drivers\n- Server side requires a client cert from the private CA (`CERT_REQUIRED`), TLS ≥ 1.2 (`remote_driver.py:19-25`).\n- `--bind` has no default, so a driver never listens on all interfaces by accident (`remote_driver.py:103`).\n- Coordinator accepts only `https://host:port` driver URLs (`distributed.py:36`).\n\n## Open questions\n- Distributed runs have an API but the dashboard shows no control for them (inference: only one mention of \"distributed\" in `docs/index.html`, in prose)."
+  }
+ ],
+ "blind_spots": [
+  "The AST graph shows no edges between prototype processes: they meet only through Kafka topics and shared JSON files, found by grep.",
+  "The remote_driver → local_service graph edge is a code import (reuse of Run and validate_config), not a runtime call.",
+  "docs/index.html is not parsed by the graph; its API calls were read directly.",
+  "Whether the prototype still runs against a current Kafka was not checked."
+ ],
+ "next_zoom": [
+  "L4: Run worker accounting — claimed/completed counters and duration cut-off (local_service.py:111-133).",
+  "L4: percentile merge across drivers vs. per-driver sampling caps (distributed.py:120-136).",
+  "Decide whether to delete or archive the prototype; build_release.py still ships its files."
+ ],
+ "modules": [
+  {
+   "id": "local_service",
+   "name": "local_service",
+   "component": "localsvc",
+   "symbols": 27,
+   "fan_in": 3,
+   "fan_out": 5,
+   "key_symbols": [
+    ".do_POST() (local_service.py:L214)",
+    "Handler (local_service.py:L159)",
+    "Run (local_service.py:L91)",
+    ".guard() (local_service.py:L172)",
+    "Server (local_service.py:L142)",
+    ".send() (local_service.py:L162)"
+   ]
+  },
+  {
+   "id": "distributed",
+   "name": "distributed",
+   "component": "coordinator",
+   "symbols": 13,
+   "fan_in": 5,
+   "fan_out": 0,
+   "key_symbols": [
+    "DistributedRun (distributed.py:L70)",
+    "Driver (distributed.py:L33)",
+    ".__init__() (distributed.py:L71)",
+    ".start() (distributed.py:L80)",
+    "plan_slices() (distributed.py:L57)",
+    "client_context() (distributed.py:L26)"
+   ]
+  },
+  {
+   "id": "remote_driver",
+   "name": "remote_driver",
+   "component": "remote",
+   "symbols": 12,
+   "fan_in": 0,
+   "fan_out": 3,
+   "key_symbols": [
+    "DriverHandler (remote_driver.py:L43)",
+    ".do_POST() (remote_driver.py:L73)",
+    "DriverServer (remote_driver.py:L28)",
+    "create_driver() (remote_driver.py:L97)",
+    ".send() (remote_driver.py:L49)",
+    ".do_GET() (remote_driver.py:L60)"
+   ]
+  },
+  {
+   "id": "driver",
+   "name": "driver",
+   "component": "drivers",
+   "symbols": 7,
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "trigger_test() (driver.py:L95)",
+    "kafka_consume_messages() (driver.py:L115)",
+    "avalanche_test() (driver.py:L69)",
+    "store_test() (driver.py:L38)",
+    "tsunami_test() (driver.py:L42)",
+    "heartbeat() (driver.py:L103)"
+   ]
+  },
+  {
+   "id": "kafka-client",
+   "name": "kafka-client",
+   "component": "aggregator",
+   "symbols": 6,
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "kafka_consume_messages() (kafka-client.py:L77)",
+    "heartbeat() (kafka-client.py:L40)",
+    "metric_update() (kafka-client.py:L63)",
+    "register_node() (kafka-client.py:L28)",
+    "update_driver_status() (kafka-client.py:L48)"
+   ]
+  },
+  {
+   "id": "orchestrator",
+   "name": "orchestrator",
+   "component": "orchestrator",
+   "symbols": 6,
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "avalanche_test() (orchestrator.py:L46)",
+    "get_metrics() (orchestrator.py:L66)",
+    "get_nodes_data() (orchestrator.py:L83)",
+    "get_test_data() (orchestrator.py:L74)",
+    "tsunami_test() (orchestrator.py:L25)"
+   ]
+  },
+  {
+   "id": "frontend",
+   "name": "frontend",
+   "component": "streamlit",
+   "symbols": 5,
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "req() (frontend.py:L77)",
+    "results() (frontend.py:L60)",
+    "view_metrics() (frontend.py:L16)",
+    "view_nodes() (frontend.py:L33)"
+   ]
+  },
+  {
+   "id": "target",
+   "name": "target",
+   "component": "target",
+   "symbols": 3,
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "metrics() (target.py:L21)",
+    "ping() (target.py:L15)"
+   ]
+  },
+  {
+   "id": "make_certs",
+   "name": "make_certs",
+   "component": "tooling",
+   "symbols": 3,
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "mk() (make_certs.sh:L13)",
+    "make_certs.sh script (make_certs.sh:L1)"
+   ]
+  },
+  {
+   "id": "build_release",
+   "name": "build_release",
+   "component": "tooling",
+   "symbols": 2,
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "build() (build_release.py:L17)"
+   ]
+  },
+  {
+   "id": "start",
+   "name": "start",
+   "component": null,
+   "symbols": 2,
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "start.sh script (start.sh:L1)"
+   ]
+  }
+ ],
+ "module_links": [
+  {
+   "from": "local_service",
+   "to": "distributed",
+   "weight": 5
+  },
+  {
+   "from": "remote_driver",
+   "to": "local_service",
+   "weight": 3
+  }
+ ]
+}

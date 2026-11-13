@@ -1,0 +1,693 @@
+{
+ "schema": "strata/1",
+ "repo": {
+  "name": "vercel-clone",
+  "url": "https://github.com/KushShriv/Vercel-Clone-for-React-Projects",
+  "commit": "f673ab0",
+  "generated": "2026-11-13",
+  "languages": [
+   {
+    "lang": "JavaScript",
+    "files": 23,
+    "lines": 1609
+   },
+   {
+    "lang": "TypeScript",
+    "files": 18,
+    "lines": 589
+   },
+   {
+    "lang": "Shell",
+    "files": 2,
+    "lines": 55
+   }
+  ],
+  "levels": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ]
+ },
+ "confidence": {
+  "score": 85,
+  "label": "High",
+  "basis": "Read all entry points, ports, Redis/S3 calls and cross-runtime HTTP links. 'Legacy' label for system A is inference."
+ },
+ "l0": {
+  "shape": "Two separate systems in one repo: a 3-service Redis/S3 deploy pipeline, and a local Docker-sandboxed build service with an AWS publisher.",
+  "summary": "A Vercel-style deployer for React/Vite projects. The original pipeline clones a GitHub repo, stores it in S3, builds it in a queue worker and serves the result by subdomain. The newer local service builds one repo at a time inside a locked-down Docker container, previews it on localhost, and can publish the build to S3 + CloudFront. The README describes only the original pipeline.",
+  "stack": [
+   "TypeScript",
+   "JavaScript (ESM)",
+   "Express",
+   "React + Vite",
+   "Redis",
+   "S3",
+   "Docker",
+   "AWS CloudFront"
+  ],
+  "entry_points": [
+   {
+    "path": "start.sh",
+    "role": "Checks Node ≥ 20 and Docker, starts local-service"
+   },
+   {
+    "path": "local-service/server.mjs:71",
+    "role": "startService: control API :4317 and preview :4318"
+   },
+   {
+    "path": "vercel-upload-service/src/index.ts:19",
+    "role": "POST /deploy"
+   },
+   {
+    "path": "vercel-deploy-service/src/index.ts:10",
+    "role": "Queue worker loop"
+   },
+   {
+    "path": "vercel-request-handler/src/index.ts:16",
+    "role": "Serves built sites by subdomain"
+   },
+   {
+    "path": "cloud/publish.mjs:44",
+    "role": "Publish a local build to S3 + CloudFront"
+   }
+  ]
+ },
+ "systems": [
+  {
+   "id": "legacy",
+   "name": "Redis/S3 pipeline",
+   "status": "legacy",
+   "launcher": "none (each service started by hand)",
+   "status_basis": "inference: start.sh launches only the local service; no compose file for these three",
+   "summary": "Three Express/TypeScript services that share Redis and an S3 bucket."
+  },
+  {
+   "id": "local",
+   "name": "Local build service",
+   "status": "active",
+   "launcher": "start.sh",
+   "status_basis": "start.sh execs local-service/server.mjs",
+   "summary": "Single-user service on 127.0.0.1 that builds repos in a Docker sandbox and can publish to AWS."
+  }
+ ],
+ "components": [
+  {
+   "id": "frontend",
+   "name": "Deploy UI",
+   "system": "legacy",
+   "kind": "frontend",
+   "tech": "React + Vite",
+   "paths": [
+    "frontend"
+   ],
+   "entry": "frontend/src/main.tsx",
+   "summary": "Form that posts a repo URL and polls deploy status.",
+   "evidence": [
+    "frontend/src/components/landing.tsx:12"
+   ]
+  },
+  {
+   "id": "upload",
+   "name": "Upload service",
+   "system": "legacy",
+   "kind": "service",
+   "tech": "Express :3000",
+   "paths": [
+    "vercel-upload-service"
+   ],
+   "entry": "vercel-upload-service/src/index.ts:19",
+   "summary": "Clones the repo, uploads its files to S3, queues a build and tracks status.",
+   "evidence": [
+    "vercel-upload-service/src/index.ts:22",
+    "vercel-upload-service/src/index.ts:49"
+   ]
+  },
+  {
+   "id": "deploy",
+   "name": "Deploy worker",
+   "system": "legacy",
+   "kind": "worker",
+   "tech": "Node + Redis brPop",
+   "paths": [
+    "vercel-deploy-service"
+   ],
+   "entry": "vercel-deploy-service/src/index.ts:10",
+   "summary": "Pops build IDs, downloads sources from S3, runs npm install + build, uploads dist.",
+   "evidence": [
+    "vercel-deploy-service/src/index.ts:12",
+    "vercel-deploy-service/src/utils.ts:6"
+   ]
+  },
+  {
+   "id": "handler",
+   "name": "Request handler",
+   "system": "legacy",
+   "kind": "service",
+   "tech": "Express :3001",
+   "paths": [
+    "vercel-request-handler"
+   ],
+   "entry": "vercel-request-handler/src/index.ts:16",
+   "summary": "Maps <id>.<domain>/path to S3 key dist/<id>/path and streams it.",
+   "evidence": [
+    "vercel-request-handler/src/index.ts:23",
+    "vercel-request-handler/src/index.ts:33"
+   ]
+  },
+  {
+   "id": "redis",
+   "name": "Redis",
+   "system": "legacy",
+   "kind": "queue",
+   "tech": "list build-queue + hash status",
+   "summary": "Build queue and status store; the only link between upload and deploy.",
+   "evidence": [
+    "vercel-upload-service/src/index.ts:32",
+    "vercel-deploy-service/src/index.ts:12"
+   ]
+  },
+  {
+   "id": "s3",
+   "name": "S3 bucket \"vercel\"",
+   "system": "legacy",
+   "kind": "store",
+   "tech": "S3-compatible, S3_ENDPOINT",
+   "summary": "Holds uploaded sources (output/<id>) and built sites (dist/<id>).",
+   "evidence": [
+    "vercel-deploy-service/src/aws.ts:11"
+   ]
+  },
+  {
+   "id": "dashboard",
+   "name": "Dashboard",
+   "system": "local",
+   "kind": "frontend",
+   "tech": "Static JS (local + GitHub Pages)",
+   "paths": [
+    "local-service/dashboard",
+    "docs"
+   ],
+   "entry": "local-service/dashboard/app.js",
+   "summary": "Starts jobs and shows logs. The GitHub Pages copy calls the API on 127.0.0.1:4317.",
+   "evidence": [
+    "local-service/dashboard/app.js:4",
+    "docs/local/app.js:4"
+   ]
+  },
+  {
+   "id": "localsvc",
+   "name": "Local service",
+   "system": "local",
+   "kind": "service",
+   "tech": "node:http 127.0.0.1:4317 + :4318",
+   "paths": [
+    "local-service"
+   ],
+   "entry": "local-service/server.mjs:71",
+   "summary": "Token-checked control API, in-memory JobStore (one active job), preview server for finished builds.",
+   "evidence": [
+    "local-service/server.mjs:90",
+    "local-service/server.mjs:114",
+    "local-service/jobs.mjs:11"
+   ]
+  },
+  {
+   "id": "sandbox",
+   "name": "Docker sandbox",
+   "system": "local",
+   "kind": "infra",
+   "tech": "worker + proxy containers",
+   "summary": "Read-only, no capabilities, resource-limited containers; clone through a proxy, build with the network detached.",
+   "evidence": [
+    "local-service/worker.mjs:182",
+    "local-service/worker.mjs:189",
+    "local-service/worker.mjs:203"
+   ]
+  },
+  {
+   "id": "publisher",
+   "name": "Cloud publisher",
+   "system": "local",
+   "kind": "cli",
+   "tech": "Node + aws CLI",
+   "paths": [
+    "cloud"
+   ],
+   "entry": "cloud/publish.mjs:44",
+   "summary": "Exports a finished job and uploads it under a deployment prefix with checksum checks.",
+   "evidence": [
+    "cloud/publish.mjs:16",
+    "cloud/publish.mjs:66"
+   ]
+  },
+  {
+   "id": "aws",
+   "name": "S3 + CloudFront",
+   "system": "local",
+   "kind": "external",
+   "tech": "CloudFormation stack",
+   "summary": "Private S3 origin with OAC behind a public CloudFront distribution.",
+   "evidence": [
+    "cloud/hosting.yaml"
+   ]
+  },
+  {
+   "id": "github",
+   "name": "GitHub / npm",
+   "system": null,
+   "kind": "external",
+   "tech": "git clone, npm registry",
+   "summary": "Source repos and packages for both systems.",
+   "evidence": [
+    "vercel-upload-service/src/index.ts:22",
+    "local-service/worker.mjs:189"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "from": "frontend",
+   "to": "upload",
+   "protocol": "http",
+   "label": "POST /deploy, GET /status",
+   "evidence": [
+    "frontend/src/components/landing.tsx:45",
+    "frontend/src/components/landing.tsx:52"
+   ]
+  },
+  {
+   "from": "upload",
+   "to": "github",
+   "protocol": "exec",
+   "label": "simple-git clone",
+   "evidence": [
+    "vercel-upload-service/src/index.ts:22"
+   ]
+  },
+  {
+   "from": "upload",
+   "to": "s3",
+   "protocol": "storage",
+   "label": "put output/<id>",
+   "evidence": [
+    "vercel-upload-service/src/aws.ts:17"
+   ]
+  },
+  {
+   "from": "upload",
+   "to": "redis",
+   "protocol": "queue",
+   "label": "lPush build-queue, hSet status",
+   "evidence": [
+    "vercel-upload-service/src/index.ts:32",
+    "vercel-upload-service/src/index.ts:34"
+   ]
+  },
+  {
+   "from": "deploy",
+   "to": "redis",
+   "protocol": "queue",
+   "label": "brPop build-queue, hSet deployed",
+   "evidence": [
+    "vercel-deploy-service/src/index.ts:12",
+    "vercel-deploy-service/src/index.ts:23"
+   ]
+  },
+  {
+   "from": "deploy",
+   "to": "s3",
+   "protocol": "storage",
+   "label": "get output/<id>, put dist/<id>",
+   "evidence": [
+    "vercel-deploy-service/src/aws.ts:17",
+    "vercel-deploy-service/src/aws.ts:72"
+   ]
+  },
+  {
+   "from": "handler",
+   "to": "s3",
+   "protocol": "storage",
+   "label": "get dist/<id>/<path>",
+   "evidence": [
+    "vercel-request-handler/src/index.ts:23"
+   ]
+  },
+  {
+   "from": "dashboard",
+   "to": "localsvc",
+   "protocol": "http",
+   "label": "/api/jobs (Bearer token)",
+   "evidence": [
+    "local-service/dashboard/app.js:27",
+    "local-service/server.mjs:114"
+   ]
+  },
+  {
+   "from": "localsvc",
+   "to": "sandbox",
+   "protocol": "exec",
+   "label": "docker run / exec",
+   "evidence": [
+    "local-service/worker.mjs:26"
+   ]
+  },
+  {
+   "from": "sandbox",
+   "to": "github",
+   "protocol": "http",
+   "label": "clone + npm ci via proxy",
+   "evidence": [
+    "local-service/worker.mjs:189",
+    "local-service/worker.mjs:198"
+   ]
+  },
+  {
+   "from": "publisher",
+   "to": "localsvc",
+   "protocol": "http",
+   "label": "GET /api/jobs/<id>/artifact",
+   "evidence": [
+    "cloud/publish.mjs:76"
+   ]
+  },
+  {
+   "from": "publisher",
+   "to": "aws",
+   "protocol": "exec",
+   "label": "aws s3 / cloudfront",
+   "evidence": [
+    "cloud/publish.mjs:16"
+   ]
+  }
+ ],
+ "flows": [
+  {
+   "id": "legacy-deploy",
+   "name": "Deploy a repo (Redis/S3 pipeline)",
+   "trigger": "POST /deploy",
+   "system": "legacy",
+   "steps": [
+    {
+     "from": "frontend",
+     "to": "upload",
+     "action": "POST /deploy { repoUrl }",
+     "evidence": "frontend/src/components/landing.tsx:45"
+    },
+    {
+     "from": "upload",
+     "to": "github",
+     "action": "git clone into output/<id>",
+     "evidence": "vercel-upload-service/src/index.ts:22"
+    },
+    {
+     "from": "upload",
+     "to": "s3",
+     "action": "upload every file to output/<id>",
+     "evidence": "vercel-upload-service/src/aws.ts:13"
+    },
+    {
+     "from": "upload",
+     "to": "redis",
+     "action": "lPush build-queue <id>; status = uploaded",
+     "evidence": "vercel-upload-service/src/index.ts:32"
+    },
+    {
+     "from": "upload",
+     "to": "frontend",
+     "action": "{ id }",
+     "reply": true,
+     "evidence": "vercel-upload-service/src/index.ts:19"
+    },
+    {
+     "from": "deploy",
+     "to": "redis",
+     "action": "brPop build-queue (blocks)",
+     "evidence": "vercel-deploy-service/src/index.ts:12"
+    },
+    {
+     "from": "deploy",
+     "to": "s3",
+     "action": "download output/<id>",
+     "evidence": "vercel-deploy-service/src/index.ts:20"
+    },
+    {
+     "from": "deploy",
+     "to": "deploy",
+     "action": "npm install && npm run build",
+     "evidence": "vercel-deploy-service/src/utils.ts:6"
+    },
+    {
+     "from": "deploy",
+     "to": "s3",
+     "action": "upload dist to dist/<id>",
+     "evidence": "vercel-deploy-service/src/index.ts:22"
+    },
+    {
+     "from": "deploy",
+     "to": "redis",
+     "action": "hSet status <id> deployed",
+     "evidence": "vercel-deploy-service/src/index.ts:23"
+    },
+    {
+     "from": "frontend",
+     "to": "upload",
+     "action": "poll GET /status?id until deployed",
+     "evidence": "frontend/src/components/landing.tsx:50"
+    }
+   ]
+  },
+  {
+   "id": "local-build",
+   "name": "Build and publish (local service)",
+   "trigger": "POST /api/jobs",
+   "system": "local",
+   "steps": [
+    {
+     "from": "dashboard",
+     "to": "localsvc",
+     "action": "POST /api/jobs { repository, revision, confirmed }",
+     "evidence": "local-service/server.mjs:114"
+    },
+    {
+     "from": "localsvc",
+     "to": "localsvc",
+     "action": "JobStore.create (one active job at a time)",
+     "evidence": "local-service/server.mjs:123"
+    },
+    {
+     "from": "localsvc",
+     "to": "sandbox",
+     "action": "start proxy + worker containers",
+     "evidence": "local-service/worker.mjs:182"
+    },
+    {
+     "from": "sandbox",
+     "to": "github",
+     "action": "git clone --no-checkout via proxy, checkout sha",
+     "evidence": "local-service/worker.mjs:189"
+    },
+    {
+     "from": "sandbox",
+     "to": "github",
+     "action": "npm ci through proxy",
+     "evidence": "local-service/worker.mjs:198"
+    },
+    {
+     "from": "sandbox",
+     "to": "sandbox",
+     "action": "detach network, npm run build --base /<id>/",
+     "evidence": "local-service/worker.mjs:203"
+    },
+    {
+     "from": "sandbox",
+     "to": "localsvc",
+     "action": "tar of dist, extractSafeTar",
+     "reply": true,
+     "evidence": "local-service/worker.mjs:208"
+    },
+    {
+     "from": "localsvc",
+     "to": "dashboard",
+     "action": "state = ready; preview on :4318/<id>/",
+     "reply": true,
+     "evidence": "local-service/server.mjs:134"
+    },
+    {
+     "from": "publisher",
+     "to": "localsvc",
+     "action": "GET /api/jobs/<id>/artifact",
+     "evidence": "cloud/publish.mjs:76"
+    },
+    {
+     "from": "publisher",
+     "to": "aws",
+     "action": "validate, upload with SHA-256, check CloudFront URL",
+     "evidence": "cloud/publish.mjs:44"
+    }
+   ]
+  }
+ ],
+ "deep_dives": [
+  {
+   "id": "sandbox",
+   "target": "sandbox",
+   "title": "Docker build sandbox",
+   "markdown": "## What it protects against\nThe local service builds **untrusted repositories**. `runWorker` (`local-service/worker.mjs:164`) isolates each build in two containers on a private Docker network.\n\n## Controls seen in code\n| Control | Where |\n|---|---|\n| Read-only root, `--cap-drop=ALL`, `no-new-privileges`, PID/memory/CPU limits, non-root user | `worker.mjs:182` |\n| Clone through a CONNECT proxy limited to GitHub and npm; no redirects, no `file://` | `worker.mjs:162`, `worker.mjs:189` |\n| Commit pinned with `rev-parse --verify` then detached checkout | `worker.mjs:192-194` |\n| Repo checked by `worker-validate.cjs` before install | `worker.mjs:196` |\n| Network detached before `npm run build` | `worker.mjs:201-203` |\n| Output extracted with size, file and path limits | `worker.mjs:89` |\n\n## Around it\n- Control API binds `127.0.0.1`, checks `Host`, `Origin` and a bearer token, and rate-limits to 120 req/min (`server.mjs:61`, `server.mjs:90`).\n- Only one job can be active (`jobs.mjs:16`).\n\n## Open questions\n- `npm ci` runs lifecycle scripts while the proxy network is attached (inference from step order; check `worker.mjs:198` flags)."
+  }
+ ],
+ "blind_spots": [
+  "The AST graph shows no edges between the three legacy services: they meet only through Redis and S3, found by grep.",
+  "The cloud → local-service graph edge is a code import (validateArtifacts); the runtime link is HTTP.",
+  "Whether system A still builds was not checked."
+ ],
+ "next_zoom": [
+  "L2: module map of local-service (server, jobs, worker, artifacts, security).",
+  "L4: request handler — no path or content-type checks beyond extension (vercel-request-handler/src/index.ts:28).",
+  "Decide whether system A is dead code; if so the README is out of date."
+ ],
+ "modules": [
+  {
+   "id": "frontend",
+   "name": "frontend",
+   "component": "frontend",
+   "symbols": 108,
+   "fan_in": 0,
+   "fan_out": 1,
+   "key_symbols": [
+    "cn() (frontend/src/lib/utils.ts:L4)",
+    "Landing() (frontend/src/components/landing.tsx:L14)",
+    "Button (frontend/src/components/ui/button.tsx:L42)",
+    "Label (frontend/src/components/ui/label.tsx:L11)",
+    "Card (frontend/src/components/ui/card.tsx:L5)",
+    "CardContent (frontend/src/components/ui/card.tsx:L59)"
+   ]
+  },
+  {
+   "id": "local-service",
+   "name": "local-service",
+   "component": "localsvc",
+   "symbols": 60,
+   "fan_in": 4,
+   "fan_out": 0,
+   "key_symbols": [
+    "startService() (local-service/server.mjs:L70)",
+    "JobStore (local-service/jobs.mjs:L11)",
+    "runWorker() (local-service/worker.mjs:L164)",
+    "validateArtifacts() (local-service/artifacts.mjs:L5)",
+    "extractSafeTar() (local-service/worker.mjs:L89)",
+    ".#require() (local-service/jobs.mjs:L43)"
+   ]
+  },
+  {
+   "id": "vercel-upload-service",
+   "name": "vercel-upload-service",
+   "component": "upload",
+   "symbols": 42,
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "getAllFiles() (vercel-upload-service/src/file.ts:L4)",
+    "uploadFile() (vercel-upload-service/src/aws.ts:L13)",
+    "generate() (vercel-upload-service/src/utils.ts:L3)",
+    "s3 (vercel-upload-service/src/aws.ts:L7)",
+    "app (vercel-upload-service/src/index.ts:L15)",
+    "publisher (vercel-upload-service/src/index.ts:L10)"
+   ]
+  },
+  {
+   "id": "vercel-deploy-service",
+   "name": "vercel-deploy-service",
+   "component": "deploy",
+   "symbols": 40,
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "copyFinalDist() (vercel-deploy-service/src/aws.ts:L46)",
+    "getAllFiles() (vercel-deploy-service/src/aws.ts:L54)",
+    "main() (vercel-deploy-service/src/index.ts:L10)",
+    "downloadS3Folder() (vercel-deploy-service/src/aws.ts:L15)",
+    "buildProject() (vercel-deploy-service/src/utils.ts:L4)",
+    "uploadFile() (vercel-deploy-service/src/aws.ts:L68)"
+   ]
+  },
+  {
+   "id": "vercel-request-handler",
+   "name": "vercel-request-handler",
+   "component": "handler",
+   "symbols": 28,
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "app (vercel-request-handler/src/index.ts:L14)",
+    "s3 (vercel-request-handler/src/index.ts:L7)"
+   ]
+  },
+  {
+   "id": "cloud",
+   "name": "cloud",
+   "component": "publisher",
+   "symbols": 12,
+   "fan_in": 0,
+   "fan_out": 4,
+   "key_symbols": [
+    "publish() (cloud/publish.mjs:L44)",
+    "deleteDeployment() (cloud/publish.mjs:L98)",
+    "listFiles() (cloud/publish.mjs:L25)",
+    "validateDeploymentId() (cloud/publish.mjs:L11)",
+    "exportJob() (cloud/publish.mjs:L73)",
+    "sha256() (cloud/publish.mjs:L24)"
+   ]
+  },
+  {
+   "id": "docs",
+   "name": "docs",
+   "component": "dashboard",
+   "symbols": 5,
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "poll() (docs/local/app.js:L60)",
+    "api() (docs/local/app.js:L26)",
+    "render() (docs/local/app.js:L36)",
+    "setConnected() (docs/local/app.js:L22)"
+   ]
+  },
+  {
+   "id": "(root)",
+   "name": "(root)",
+   "component": null,
+   "symbols": 4,
+   "fan_in": 1,
+   "fan_out": 0,
+   "key_symbols": [
+    "start.sh script (start.sh:L1)"
+   ]
+  },
+  {
+   "id": "scripts",
+   "name": "scripts",
+   "component": null,
+   "symbols": 2,
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "package-release.sh script (scripts/package-release.sh:L1)"
+   ]
+  }
+ ],
+ "module_links": [
+  {
+   "from": "cloud",
+   "to": "local-service",
+   "weight": 4
+  },
+  {
+   "from": "frontend",
+   "to": "(root)",
+   "weight": 1
+  }
+ ]
+}

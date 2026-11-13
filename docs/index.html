@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strata — Architecture Viewer</title>
+<meta name="description" content="Zoomable architecture maps of any repository, from a one-line overview down to symbol-level deep dives.">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="./" aria-label="Strata home">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4 29 11 16 18 3 11Z" class="l1"/><path d="M3 16l13 7 13-7" class="l2"/><path d="M3 21l13 7 13-7" class="l3"/></svg>
+    <span>Strata</span>
+  </a>
+  <div class="repo" id="repo" hidden>
+    <a id="repo-name" target="_blank" rel="noopener noreferrer"></a>
+    <span id="repo-meta" class="muted"></span>
+    <span id="conf" class="conf"></span>
+  </div>
+  <nav class="levels" id="levels" aria-label="Detail level" hidden>
+    <button data-l="0" title="Elevator (0)">L0<small>Overview</small></button>
+    <button data-l="1" title="System (1)">L1<small>System</small></button>
+    <button data-l="2" title="Modules (2)">L2<small>Modules</small></button>
+    <button data-l="3" title="Flows (3)">L3<small>Flows</small></button>
+    <button data-l="4" title="Deep dive (4)">L4<small>Deep dive</small></button>
+  </nav>
+  <div class="actions" id="actions" hidden>
+    <button id="btn-png" title="Export the diagram as PNG">PNG</button>
+    <button id="btn-share" title="Copy a link that contains this map">Share</button>
+    <button id="btn-open" title="Open another file">Open</button>
+  </div>
+</header>
+
+<main id="empty" class="empty">
+  <section class="hero">
+    <p class="eyebrow">Architecture, one layer at a time</p>
+    <h1>See how a codebase is built, then zoom in.</h1>
+    <p class="lede">Strata reads a repository with the <code>/strata</code> Claude Code skill and draws it here: system map, module graph, request flows and deep dives. Everything stays in your browser.</p>
+    <div id="drop" class="drop" tabindex="0">
+      <strong>Drop an architecture JSON here</strong>
+      <span class="muted">or</span>
+      <div class="row">
+        <label class="btn primary">Choose file<input id="file" type="file" accept=".json,application/json" hidden></label>
+        <button class="btn" id="btn-paste">Paste JSON</button>
+      </div>
+    </div>
+    <div id="paste-box" class="paste" hidden>
+      <textarea id="paste" spellcheck="false" placeholder='{"schema":"strata/1", ...}'></textarea>
+      <button class="btn primary" id="btn-paste-go">Render</button>
+    </div>
+    <p id="err" class="err" role="alert" hidden></p>
+    <section class="gallery" aria-labelledby="g-h">
+      <h2 id="g-h">Maps</h2>
+      <div id="gallery" class="gcards"></div>
+    </section>
+    <ol class="how">
+      <li><span>1</span>Install the skill: <code>./install.sh</code></li>
+      <li><span>2</span>In Claude Code: <code>/strata path/to/repo --level all</code></li>
+      <li><span>3</span>Open the link it prints, or drop the saved JSON here.</li>
+    </ol>
+  </section>
+</main>
+
+<main id="app" class="app" hidden>
+  <section class="stage" id="stage">
+    <div id="view-0" class="view l0" hidden></div>
+    <div id="view-graph" class="view graph" hidden>
+      <div id="cy"></div>
+      <div class="legend" id="legend"></div>
+      <p class="hint muted" id="graph-hint"></p>
+    </div>
+    <div id="view-3" class="view flows" hidden>
+      <aside class="list" id="flow-list"></aside>
+      <div class="flow-main"><div id="seq" class="seq"></div><table class="steps" id="steps"></table></div>
+    </div>
+    <div id="view-4" class="view dives" hidden>
+      <aside class="list" id="dive-list"></aside>
+      <article id="dive" class="md"></article>
+    </div>
+    <div id="view-missing" class="view missing" hidden></div>
+  </section>
+  <aside class="panel" id="panel" aria-live="polite"></aside>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js" integrity="sha384-IWROdLKRsN1UuJywMlWl7/blXQ8GEooN2n7dzTxfEPd7ybYIKCUJ2Ol/1Gpf3YV4" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js" integrity="sha384-2IH3T69EIKYC4c+RXZifZRvaH5SRUdacJW7j6HtE5rQbvLhKKdawxq6vpIzJ7j9M" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.js" integrity="sha384-u69h9ebXeSjlg6q/rb1zKTRAGu/h8deCl0409xpS/QJctMKnc4M9Fzkm01VOQdeF" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" integrity="sha384-WmdflGW9aGfoBdHc4rRyWzYuAjEmDwMdGdiPNacbwfGKxBW/SO6guzuQ76qjnSlr" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js" integrity="sha384-/TQbtLCAerC3jgaim+N78RZSDYV7ryeoBCVqTuzRrFec2akfBkHS7ACQ3PQhvMVi" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js" integrity="sha384-+VfUPEb0PdtChMwmBcBmykRMDd+v6D/oFmB3rZM/puCMDYcIvF968OimRh4KQY9a" crossorigin="anonymous"></script>
+<script src="app.js"></script>
+</body>
+</html>
