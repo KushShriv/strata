@@ -120,9 +120,11 @@
     const c = data.confidence, conf = $('conf');
     if (c && c.score != null) {
       const s = Number(c.score);
-      conf.textContent = `${c.label || (s >= 80 ? 'High' : s >= 50 ? 'Med' : 'Low')} ${s}`;
-      conf.className = 'status ' + (s >= 80 ? 'high' : s >= 50 ? 'med' : 'low');
-      conf.title = 'Confidence: ' + str(c.basis); conf.hidden = false;
+      const band = s >= 80 ? 'High' : s >= 50 ? 'Med' : 'Low';
+      conf.textContent = `Confidence ${s}%`;
+      conf.className = 'status ' + band.toLowerCase();
+      conf.title = `${band} confidence that this map matches the code. ${str(c.basis)}`;
+      conf.setAttribute('aria-label', `Confidence ${s} percent, ${band}`); conf.hidden = false;
     } else conf.hidden = true;
     const avail = available();
     for (const b of $('levels').querySelectorAll('button')) {
@@ -154,7 +156,11 @@
     const p = $('panel'); p.replaceChildren();
     p.append(el('h2', { text: NAMES[level] }), el('p', { class: 'muted', text: TIPS[level] }));
     if (extra) p.append(extra);
-    if (data.confidence) p.append(el('h4', { text: 'Confidence' }), el('p', {}, el('b', { text: `${str(data.confidence.label)} ${str(data.confidence.score)}`.trim() + '. ' }), str(data.confidence.basis)));
+    if (data.confidence) {
+      const s = Number(data.confidence.score), band = s >= 80 ? 'High' : s >= 50 ? 'Med' : 'Low';
+      p.append(el('h4', { text: 'Confidence' }), el('p', {}, el('b', { text: `${s}% (${band}). ` }), str(data.confidence.basis)),
+        el('p', { class: 'muted small', text: 'How likely the map matches the code — not a grade of the project. High 80–100: read in code. Med 50–79: some inference. Low under 50: mostly unverified.' }));
+    }
     if (arr(data.blind_spots).length) p.append(el('h4', { text: 'Not visible from code' }), el('ul', {}, data.blind_spots.map(s => el('li', { text: s }))));
     if (arr(data.next_zoom).length) p.append(el('h4', { text: 'Next zoom' }), el('ul', {}, data.next_zoom.map(s => el('li', { text: s }))));
   }

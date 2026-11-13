@@ -80,7 +80,21 @@ Treat README/docs as claims. If the code disagrees, say so ("README says Postgre
 - Diagrams: mermaid. Max ~12 boxes per diagram; collapse the rest into a "+N more" node or a second diagram.
 - Name what the graph could not see (dynamic dispatch, generated code, unsupported languages, external repos).
 - End with: **Next zoom** — 2–3 concrete follow-ups at the next level (e.g. "L3: trace POST /scan through server.py → recommendations.scan").
-- Tag the overall picture with a confidence score per the user's global rules, e.g. `[High 85] verified entry points and module edges; [Med 60] queue usage inferred from env names`.
+- End with one overall confidence score for the map, using the rubric below. Give the score, its band, and a one-line basis that names what you read and what you inferred, e.g. `Confidence 85% (High): read every entry point and cross-service call; "legacy" label inferred from git dates`.
+
+#### Confidence rubric
+The score answers: how likely is it that the map matches the code? Score the map by its **weakest material claim**, not its average.
+
+| Band | Score | Use when |
+|---|---|---|
+| High | 80–100 | Every component, link and flow step on the map was read in code this session (file:line cited). Only labels or minor details are inferred. |
+| Med | 50–79 | The structure was read, but at least one material claim (a link, a store, a system boundary, a flow step) rests on inference: names, config, env vars, docs, or file layout. Name the inference in the basis. |
+| Low | 0–49 | Large parts come from the README, file names or the graph alone, or a key boundary was not checked. Say which single check would raise the score. |
+
+Rules:
+- Never use High for anything you did not read in this session. "Should work" is Med at best.
+- Mark each unbacked link or flow step with `"inferred": true`. The pack script compares the score with the share of inferred claims and warns when they disagree.
+- The score covers the map, not the quality of the project. Never phrase it as a grade.
 
 ### 6. Emit for the viewer (default; skip with `--no-viz`)
 1. Write the same findings as a `strata/1` JSON to the scratchpad (or a temp dir). Schema: `references/schema.md`. Read it the first time you emit. Only include levels you actually produced; never pad.

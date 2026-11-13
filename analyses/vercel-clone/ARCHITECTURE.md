@@ -4,7 +4,8 @@
 
 **Interactive map:** https://kushshriv.github.io/strata/?map=vercel-clone
 
-**Confidence:** High 85 — Read all entry points, ports, Redis/S3 calls and cross-runtime HTTP links. 'Legacy' label for system A is inference.
+**Confidence 85%** (High) — Read all entry points, ports, Redis/S3 calls and cross-runtime HTTP links. 'Legacy' label for system A is inference.  
+_How likely the map matches the code. High 80–100 = read in code; Med 50–79 = some inference; Low < 50 = mostly unverified._
 
 ## L0 — Overview
 

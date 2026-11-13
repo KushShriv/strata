@@ -4,7 +4,8 @@
 
 **Interactive map:** https://kushshriv.github.io/strata/?map=distributed-load-testing
 
-**Confidence:** High 85 — Read every entry point, all Kafka topics and HTTP routes, and the local/remote run path. 'Legacy' label for the prototype rests on git history and README wording.
+**Confidence 85%** (High) — Read every entry point, all Kafka topics and HTTP routes, and the local/remote run path. 'Legacy' label for the prototype rests on git history and README wording.  
+_How likely the map matches the code. High 80–100 = read in code; Med 50–79 = some inference; Low < 50 = mostly unverified._
 
 ## L0 — Overview
 

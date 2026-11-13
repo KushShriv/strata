@@ -41,6 +41,47 @@ def fail(errors):
     sys.exit(1)
 
 
+BANDS = (("High", 80, 100), ("Med", 50, 79), ("Low", 0, 49))
+
+
+def band(score):
+    return next(name for name, lo, hi in BANDS if lo <= score <= hi)
+
+
+def check_confidence(d, errs, warns):
+    """Rubric lives in SKILL.md. Here: shape, band/score agreement, and a sanity
+    check against the share of claims that carry no evidence."""
+    c = d.get("confidence")
+    if not isinstance(c, dict) or c.get("score") is None:
+        errs.append("confidence.score is required (0-100; see the rubric in SKILL.md)")
+        return
+    try:
+        score = c["score"] = int(c["score"])
+    except (TypeError, ValueError):
+        errs.append("confidence.score must be a whole number 0-100")
+        return
+    if not 0 <= score <= 100:
+        errs.append("confidence.score must be between 0 and 100")
+        return
+    label = c.get("label") or band(score)
+    if label not in {b[0] for b in BANDS}:
+        errs.append(f"confidence.label must be High, Med or Low (got {label!r})")
+    elif label != band(score):
+        errs.append(f"confidence.label {label} does not match score {score} (expected {band(score)})")
+    c["label"] = label
+    if not str(c.get("basis") or "").strip():
+        errs.append("confidence.basis is required: say what was read and what was inferred")
+    claims = list(d.get("links", [])) + [s for f in d.get("flows", []) for s in f.get("steps", [])]
+    if claims:
+        unbacked = sum(1 for x in claims if x.get("inferred") or not x.get("evidence"))
+        share = unbacked / len(claims)
+        if score >= 80 and share > 0.2:
+            warns.append(f"confidence {score} (High) but {unbacked}/{len(claims)} links and flow steps have no evidence; "
+                         "High needs every material claim read in code")
+        elif score >= 50 and share > 0.5:
+            warns.append(f"confidence {score} (Med) but over half the links and flow steps have no evidence; consider Low")
+
+
 def validate(d):
     errs, warns = [], []
     if d.get("schema") != "strata/1":
@@ -49,6 +90,7 @@ def validate(d):
         errs.append("repo.name is required")
     if not isinstance(d.get("l0"), dict) or not d["l0"].get("summary"):
         errs.append("l0.summary is required")
+    check_confidence(d, errs, warns)
     sys_ids = {s.get("id") for s in d.get("systems", [])}
     for s in d.get("systems", []):
         if s.get("status", "unknown") not in STATUS:
@@ -135,7 +177,8 @@ def render_md(d, link=None):
         w(f"**Interactive map:** {link}\n")
     c = d.get("confidence")
     if c:
-        w(f"**Confidence:** {c.get('label', '')} {c.get('score', '')} — {c.get('basis', '')}\n")
+        w(f"**Confidence {c.get('score', '')}%** ({c.get('label', '')}) — {c.get('basis', '')}  \n"
+          "_How likely the map matches the code. High 80–100 = read in code; Med 50–79 = some inference; Low < 50 = mostly unverified._\n")
     l0 = d["l0"]
     w("## L0 — Overview\n")
     if l0.get("shape"):

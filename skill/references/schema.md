@@ -1,6 +1,6 @@
 # strata/1 — architecture JSON for the viewer
 
-Write one JSON object. Every field except `schema`, `repo.name` and `l0` is optional: include only what the level you produced supports. Do not invent data to fill fields.
+Write one JSON object. Every field except `schema`, `repo.name`, `l0` and `confidence` is optional: include only what the level you produced supports. Do not invent data to fill fields.
 
 `evidence` values are strings `"path"` or `"path:line"` (or `"path:Lstart-Lend"`), relative to the repo root.
 
@@ -14,7 +14,11 @@ Write one JSON object. Every field except `schema`, `repo.name` and `l0` is opti
     "generated": "2026-11-13",                 // date of this analysis
     "levels": [0, 1]                           // levels this file covers (pack script fills it)
   },
-  "confidence": { "score": 85, "label": "High", "basis": "read all entry points and boundary calls" },
+  "confidence": {                             // required; rubric in SKILL.md ("Confidence rubric")
+    "score": 85,                               // 0-100: how likely the map matches the code
+    "label": "High",                           // High 80-100 · Med 50-79 · Low 0-49 (must match score)
+    "basis": "read all entry points and boundary calls; 'legacy' label inferred from git dates"
+  },
 
   "l0": {                                      // required
     "shape": "Two separate systems: 3 Express services on Redis/S3, and a local Docker build service",
