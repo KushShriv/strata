@@ -21,6 +21,8 @@ Strata has two parts:
 |---|---|---|
 | Distributed Load Testing System | [kushshriv.github.io/strata/?map=distributed-load-testing](https://kushshriv.github.io/strata/?map=distributed-load-testing) | [ARCHITECTURE.md](analyses/distributed-load-testing/ARCHITECTURE.md) |
 | Vercel Clone for React Projects | [kushshriv.github.io/strata/?map=vercel-clone](https://kushshriv.github.io/strata/?map=vercel-clone) | [ARCHITECTURE.md](analyses/vercel-clone/ARCHITECTURE.md) |
+| The Thinking Behind | [kushshriv.github.io/strata/?map=the-thinking-behind](https://kushshriv.github.io/strata/?map=the-thinking-behind) | [ARCHITECTURE.md](analyses/the-thinking-behind/ARCHITECTURE.md) |
+| Strata (this repo) | [kushshriv.github.io/strata/?map=strata](https://kushshriv.github.io/strata/?map=strata) | [ARCHITECTURE.md](analyses/strata/ARCHITECTURE.md) |
 
 Every claim carries `path:line` evidence. With `repo.url` set, evidence links open the file on GitHub at the analysed commit.
 

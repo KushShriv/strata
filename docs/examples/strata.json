@@ -1,0 +1,589 @@
+{
+ "schema": "strata/1",
+ "repo": {
+  "name": "strata",
+  "url": "https://github.com/KushShriv/strata",
+  "commit": "210cd6d",
+  "generated": "2026-11-13",
+  "languages": [
+   {
+    "lang": "JavaScript",
+    "files": 3,
+    "lines": 801
+   },
+   {
+    "lang": "Python",
+    "files": 2,
+    "lines": 620
+   },
+   {
+    "lang": "Shell",
+    "files": 1,
+    "lines": 20
+   }
+  ],
+  "levels": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ]
+ },
+ "confidence": {
+  "score": 85,
+  "label": "High",
+  "basis": "Read SKILL.md, both scripts' entry points, validation and output code, and the viewer's load, render and share code. graphify itself is an external tool and was not read; its behaviour comes from SKILL.md and from running it this session. Claude Code's steps follow SKILL.md, which is an instruction file, not code."
+ },
+ "l0": {
+  "shape": "Two separate systems that share only a JSON format: a Claude Code skill (instructions + two Python scripts) and a static viewer on GitHub Pages.",
+  "summary": "Strata maps a repository's architecture at five zoom levels, from a one-line overview (L0) to symbol-level deep dives (L4). The skill tells Claude Code to build a free AST graph with graphify, roll it up with arch_digest.py, check every boundary claim against the code, and write a strata/1 JSON. strata_pack.py validates that JSON (including the confidence score), saves it, writes an optional Markdown report and prints a link. The link carries the whole map in the URL fragment, so no server ever sees it. The viewer is plain JavaScript that draws the map by hand-drawn style with dagre and rough.js.",
+  "stack": [
+   "Markdown skill (Claude Code)",
+   "Python 3 stdlib",
+   "graphify (AST graph)",
+   "vanilla JS",
+   "dagre + rough.js",
+   "marked + DOMPurify",
+   "GitHub Pages"
+  ],
+  "entry_points": [
+   {
+    "path": "skill/SKILL.md",
+    "role": "/strata: the pipeline Claude Code follows"
+   },
+   {
+    "path": "skill/scripts/arch_digest.py",
+    "role": "repo recon + graph roll-up"
+   },
+   {
+    "path": "skill/scripts/strata_pack.py",
+    "role": "validate, save, report, link"
+   },
+   {
+    "path": "docs/index.html",
+    "role": "viewer page"
+   },
+   {
+    "path": "install.sh",
+    "role": "links skill/ into ~/.claude/skills/strata"
+   }
+  ]
+ },
+ "systems": [
+  {
+   "id": "skill",
+   "name": "Analysis skill",
+   "status": "active",
+   "launcher": "/strata in Claude Code",
+   "status_basis": "install.sh:15 links skill/ into ~/.claude/skills/strata",
+   "summary": "Runs on the user's machine. Reads a repo and writes a map."
+  },
+  {
+   "id": "viewer",
+   "name": "Viewer",
+   "status": "active",
+   "launcher": "GitHub Pages (main /docs)",
+   "status_basis": "docs/ holds index.html and .nojekyll; the site serves it",
+   "summary": "Runs in the browser. Draws a map from a link, a file or the gallery."
+  }
+ ],
+ "components": [
+  {
+   "id": "claude",
+   "name": "Claude Code",
+   "system": null,
+   "kind": "external",
+   "tech": "agent",
+   "summary": "Follows SKILL.md: runs the tools, reads code, writes the JSON and the answer.",
+   "evidence": [
+    "skill/SKILL.md:37"
+   ]
+  },
+  {
+   "id": "skill",
+   "name": "Skill instructions",
+   "system": "skill",
+   "kind": "library",
+   "tech": "Markdown",
+   "paths": [
+    "skill/SKILL.md",
+    "skill/references/"
+   ],
+   "entry": "skill/SKILL.md:1",
+   "summary": "Levels, the six-step pipeline, the multiple-systems check, the confidence rubric and the JSON schema.",
+   "evidence": [
+    "skill/SKILL.md:37",
+    "skill/SKILL.md:70"
+   ]
+  },
+  {
+   "id": "graphify",
+   "name": "graphify",
+   "system": null,
+   "kind": "external",
+   "tech": "CLI, AST only",
+   "summary": "Builds graphify-out/graph.json with no LLM and no network.",
+   "evidence": [
+    "skill/SKILL.md:46"
+   ]
+  },
+  {
+   "id": "target",
+   "name": "Target repo",
+   "system": null,
+   "kind": "external",
+   "tech": "any language",
+   "summary": "The repository being mapped.",
+   "evidence": [
+    "skill/SKILL.md:39"
+   ]
+  },
+  {
+   "id": "digest",
+   "name": "arch_digest.py",
+   "system": "skill",
+   "kind": "cli",
+   "tech": "Python stdlib",
+   "paths": [
+    "skill/scripts/arch_digest.py"
+   ],
+   "entry": "skill/scripts/arch_digest.py:242",
+   "summary": "Languages, manifests and entry points, then a module roll-up of the graph with fan-in/out, cycles and key symbols.",
+   "evidence": [
+    "skill/scripts/arch_digest.py:163"
+   ]
+  },
+  {
+   "id": "pack",
+   "name": "strata_pack.py",
+   "system": "skill",
+   "kind": "cli",
+   "tech": "Python stdlib",
+   "paths": [
+    "skill/scripts/strata_pack.py"
+   ],
+   "entry": "skill/scripts/strata_pack.py:274",
+   "summary": "Validates the JSON and its confidence block, merges with a saved map, writes the report and prints the share link.",
+   "evidence": [
+    "skill/scripts/strata_pack.py:85",
+    "skill/scripts/strata_pack.py:51"
+   ]
+  },
+  {
+   "id": "mapjson",
+   "name": "Saved map + report",
+   "system": "skill",
+   "kind": "store",
+   "tech": "~/.strata/<name>.json, ARCHITECTURE.md",
+   "summary": "The validated map, merged with earlier runs, and an optional Markdown report with mermaid diagrams.",
+   "evidence": [
+    "skill/scripts/strata_pack.py:289",
+    "skill/scripts/strata_pack.py:310"
+   ]
+  },
+  {
+   "id": "viewer",
+   "name": "Viewer page",
+   "system": "viewer",
+   "kind": "frontend",
+   "tech": "vanilla JS, strict CSP",
+   "paths": [
+    "docs/"
+   ],
+   "entry": "docs/app.js:92",
+   "summary": "Loads a map, then draws L0 cards, L1/L2 graphs, L3 sequences and L4 Markdown.",
+   "evidence": [
+    "docs/app.js:92",
+    "docs/index.html:8"
+   ]
+  },
+  {
+   "id": "examples",
+   "name": "Gallery maps",
+   "system": "viewer",
+   "kind": "store",
+   "tech": "docs/examples/*.json",
+   "summary": "Published maps and the gallery list.",
+   "evidence": [
+    "docs/app.js:338"
+   ]
+  },
+  {
+   "id": "cdn",
+   "name": "jsDelivr",
+   "system": null,
+   "kind": "external",
+   "tech": "pinned versions + SRI",
+   "summary": "dagre, rough.js, marked and DOMPurify.",
+   "evidence": [
+    "docs/index.html:118"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "from": "claude",
+   "to": "skill",
+   "protocol": "other",
+   "label": "reads the pipeline",
+   "evidence": [
+    "skill/SKILL.md:37"
+   ]
+  },
+  {
+   "from": "claude",
+   "to": "graphify",
+   "protocol": "exec",
+   "label": "graphify update <repo>",
+   "evidence": [
+    "skill/SKILL.md:46"
+   ]
+  },
+  {
+   "from": "graphify",
+   "to": "target",
+   "protocol": "storage",
+   "label": "parse → graphify-out/",
+   "evidence": [
+    "skill/SKILL.md:46"
+   ]
+  },
+  {
+   "from": "claude",
+   "to": "digest",
+   "protocol": "exec",
+   "label": "python3 arch_digest.py",
+   "evidence": [
+    "skill/SKILL.md:53"
+   ]
+  },
+  {
+   "from": "digest",
+   "to": "target",
+   "protocol": "storage",
+   "label": "read graph.json + walk files",
+   "evidence": [
+    "skill/scripts/arch_digest.py:164",
+    "skill/scripts/arch_digest.py:56"
+   ]
+  },
+  {
+   "from": "claude",
+   "to": "target",
+   "protocol": "storage",
+   "label": "grep boundaries, read code",
+   "evidence": [
+    "skill/SKILL.md:60"
+   ]
+  },
+  {
+   "from": "claude",
+   "to": "pack",
+   "protocol": "exec",
+   "label": "python3 strata_pack.py",
+   "evidence": [
+    "skill/SKILL.md:107"
+   ]
+  },
+  {
+   "from": "pack",
+   "to": "mapjson",
+   "protocol": "storage",
+   "label": "write JSON (+ --md)",
+   "evidence": [
+    "skill/scripts/strata_pack.py:303"
+   ]
+  },
+  {
+   "from": "pack",
+   "to": "viewer",
+   "protocol": "http",
+   "label": "link with #d=<deflate+base64url>",
+   "evidence": [
+    "skill/scripts/strata_pack.py:307"
+   ]
+  },
+  {
+   "from": "mapjson",
+   "to": "viewer",
+   "protocol": "other",
+   "label": "drop or paste file (read locally)",
+   "evidence": [
+    "docs/index.html:55"
+   ]
+  },
+  {
+   "from": "viewer",
+   "to": "examples",
+   "protocol": "http",
+   "label": "fetch ?map=<name>",
+   "evidence": [
+    "docs/app.js:99"
+   ]
+  },
+  {
+   "from": "viewer",
+   "to": "cdn",
+   "protocol": "http",
+   "label": "4 scripts, SRI-checked",
+   "evidence": [
+    "docs/index.html:118"
+   ]
+  }
+ ],
+ "modules": [
+  {
+   "id": "docs/app",
+   "name": "docs/app.js",
+   "component": "viewer",
+   "summary": "Load, validate, levels, panels, flows, dives, gallery, share.",
+   "symbols": 34,
+   "fan_in": 0,
+   "fan_out": 2,
+   "key_symbols": [
+    "boot() (docs/app.js:L92)",
+    "load() (docs/app.js:L76)",
+    "setLevel() (docs/app.js:L138)",
+    "renderFlows() (docs/app.js:L294)",
+    "gallery() (docs/app.js:L335)",
+    "share() (docs/app.js:L362)"
+   ]
+  },
+  {
+   "id": "docs/draw",
+   "name": "docs/draw.js",
+   "component": "viewer",
+   "summary": "window.StrataDraw: graph layout and hand-drawn rendering, sequence diagrams, legend glyphs.",
+   "symbols": 20,
+   "fan_in": 1,
+   "fan_out": 0,
+   "key_symbols": [
+    "graph() (docs/draw.js:L143)",
+    "sequence() (docs/draw.js:L308)",
+    "palette() (docs/draw.js:L52)",
+    "wrap() (docs/draw.js:L34)"
+   ]
+  },
+  {
+   "id": "docs/theme",
+   "name": "docs/theme.js",
+   "component": "viewer",
+   "summary": "Shared site theme; fires themechange.",
+   "symbols": 1,
+   "fan_in": 1,
+   "fan_out": 0,
+   "key_symbols": [
+    "themechange event (docs/theme.js:L8)"
+   ]
+  },
+  {
+   "id": "arch_digest",
+   "name": "arch_digest.py",
+   "component": "digest",
+   "summary": "Recon and graph roll-up.",
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "digest_graph() (skill/scripts/arch_digest.py:L163)",
+    "list_files() (skill/scripts/arch_digest.py:L56)",
+    "noise() (skill/scripts/arch_digest.py:L144)",
+    "auto_expand() (skill/scripts/arch_digest.py:L150)"
+   ]
+  },
+  {
+   "id": "strata_pack",
+   "name": "strata_pack.py",
+   "component": "pack",
+   "summary": "Validate, merge, report, link.",
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "validate() (skill/scripts/strata_pack.py:L85)",
+    "check_confidence() (skill/scripts/strata_pack.py:L51)",
+    "from_digest() (skill/scripts/strata_pack.py:L128)",
+    "merge() (skill/scripts/strata_pack.py:L150)",
+    "render_md() (skill/scripts/strata_pack.py:L166)"
+   ]
+  },
+  {
+   "id": "SKILL.md",
+   "name": "SKILL.md",
+   "component": "skill",
+   "summary": "The pipeline and rules.",
+   "fan_in": 0,
+   "fan_out": 2
+  },
+  {
+   "id": "references",
+   "name": "references/",
+   "component": "skill",
+   "summary": "levels.md templates and schema.md.",
+   "fan_in": 1,
+   "fan_out": 0
+  }
+ ],
+ "module_links": [
+  {
+   "from": "docs/app",
+   "to": "docs/draw",
+   "weight": 9
+  },
+  {
+   "from": "docs/app",
+   "to": "docs/theme",
+   "weight": 1
+  },
+  {
+   "from": "SKILL.md",
+   "to": "references",
+   "weight": 2
+  },
+  {
+   "from": "SKILL.md",
+   "to": "arch_digest",
+   "weight": 2
+  },
+  {
+   "from": "SKILL.md",
+   "to": "strata_pack",
+   "weight": 2
+  }
+ ],
+ "flows": [
+  {
+   "id": "analyse",
+   "name": "Map a repo (/strata)",
+   "trigger": "/strata <repo> --level all",
+   "system": "skill",
+   "steps": [
+    {
+     "from": "claude",
+     "to": "skill",
+     "action": "load the pipeline and rubric",
+     "evidence": "skill/SKILL.md:37"
+    },
+    {
+     "from": "claude",
+     "to": "graphify",
+     "action": "reuse graphify-out, or graphify update (skip for tiny repos)",
+     "evidence": "skill/SKILL.md:44"
+    },
+    {
+     "from": "claude",
+     "to": "digest",
+     "action": "module roll-up, entry points, cycles",
+     "evidence": "skill/SKILL.md:53"
+    },
+    {
+     "from": "claude",
+     "to": "target",
+     "action": "boundary greps the graph cannot see; multiple-systems check",
+     "evidence": "skill/SKILL.md:60"
+    },
+    {
+     "from": "claude",
+     "to": "pack",
+     "action": "write strata/1 JSON, then pack it",
+     "evidence": "skill/SKILL.md:107"
+    },
+    {
+     "from": "pack",
+     "to": "mapjson",
+     "action": "validate (fail on errors, warn on weak evidence); merge; save",
+     "evidence": "skill/scripts/strata_pack.py:295"
+    },
+    {
+     "from": "pack",
+     "to": "claude",
+     "action": "print 'link: …#d=…'",
+     "reply": true,
+     "evidence": "skill/scripts/strata_pack.py:316"
+    }
+   ]
+  },
+  {
+   "id": "open-link",
+   "name": "Open a shared link",
+   "trigger": "https://kushshriv.github.io/strata/#d=…",
+   "system": "viewer",
+   "steps": [
+    {
+     "from": "pack",
+     "to": "viewer",
+     "action": "map rides in the URL fragment, never sent to a server",
+     "evidence": "skill/scripts/strata_pack.py:305"
+    },
+    {
+     "from": "viewer",
+     "to": "cdn",
+     "action": "load dagre, rough.js, marked, DOMPurify (SRI)",
+     "evidence": "docs/index.html:118"
+    },
+    {
+     "from": "viewer",
+     "to": "viewer",
+     "action": "inflate #d= with DecompressionStream, validate, pick a level",
+     "evidence": "docs/app.js:98"
+    }
+   ]
+  },
+  {
+   "id": "gallery",
+   "name": "Open a gallery map",
+   "trigger": "?map=<name>",
+   "system": "viewer",
+   "steps": [
+    {
+     "from": "viewer",
+     "to": "examples",
+     "action": "fetch examples/index.json, draw thumbnails",
+     "evidence": "docs/app.js:338"
+    },
+    {
+     "from": "viewer",
+     "to": "examples",
+     "action": "name must match ^[a-z0-9-]+$; fetch examples/<name>.json",
+     "evidence": "docs/app.js:99"
+    },
+    {
+     "from": "examples",
+     "to": "viewer",
+     "action": "map JSON → load() → draw",
+     "reply": true,
+     "evidence": "docs/app.js:104"
+    }
+   ]
+  }
+ ],
+ "deep_dives": [
+  {
+   "id": "share",
+   "target": "viewer",
+   "title": "Share links with no server",
+   "markdown": "## Encoding\n`strata_pack.py` dumps the JSON compactly, compresses it with **raw deflate** (`zlib.compressobj(9, DEFLATED, -15)`) and encodes it as unpadded **base64url** (`strata_pack.py:302-306`). The link is `<viewer>#d=<data>` (`:307`).\n\n## Why the fragment\nBrowsers do not send the part after `#` to the server, so GitHub Pages never receives the map. The viewer decodes it with the browser's `DecompressionStream('deflate-raw')` (`docs/app.js:61`).\n\n## Limits\n| Limit | Where |\n|---|---|\n| Links over 60,000 chars are not printed; drop the file instead | `strata_pack.py:34`, `:313` |\n| The report embeds the link only when it is under 2,000 chars | `strata_pack.py:311` |\n\n## Other sources\n`?map=` accepts only `[a-z0-9-]` names from `examples/` (`docs/app.js:99`). `?src=` accepts https or same-origin URLs only, and fetches with no credentials and no referrer (`docs/app.js:101-103`)."
+  },
+  {
+   "id": "safety",
+   "target": "viewer",
+   "title": "Rendering untrusted maps",
+   "markdown": "A map can come from anyone, so the viewer treats it as hostile.\n\n| Control | Where |\n|---|---|\n| CSP: scripts only from self and jsDelivr; no inline script; `object-src 'none'`; `base-uri 'none'` | `docs/index.html:8` |\n| Pinned library versions with SRI hashes | `docs/index.html:118-121` |\n| Text goes in through `textContent` via `el()` | `docs/app.js:22` |\n| Raw HTML in Markdown is escaped before parsing | `docs/app.js:19` |\n| Parsed Markdown is sanitised; `style`, `form`, `input` and style attributes removed | `docs/app.js:323` |\n| JSON shape is checked before drawing | `docs/app.js:67` |\n\nThe escape step matters: without it, raw `<img onerror>` would reach DOMPurify's parser, and only the CSP would stop it."
+  },
+  {
+   "id": "confidence",
+   "target": "pack",
+   "title": "The confidence check",
+   "markdown": "The rubric is in `SKILL.md`. `check_confidence()` (`strata_pack.py:51`) enforces the parts a script can see.\n\n**Errors (pack fails):** no score, score not an integer 0–100, label not matching the band (High 80–100, Med 50–79, Low 0–49), or no basis.\n\n**Warnings:** the share of links and flow steps with no evidence or with `inferred: true` is over 20% while the score is High, or over 50% while it is Med (`strata_pack.py:76-82`).\n\nThe check cannot tell whether the evidence lines are correct; that still depends on the verification step."
+  }
+ ],
+ "blind_spots": [
+  "The graph has no links between the viewer scripts: they share window.StrataDraw and a DOM event, not imports. Module links were counted by grep.",
+  "Claude Code's steps come from SKILL.md, an instruction file. The scripts are code; the agent's behaviour is not.",
+  "graphify is an external tool; its internals were not read.",
+  "This map describes commit 210cd6d, before it was added to its own gallery."
+ ],
+ "next_zoom": [
+  "L4: draw.js layout — cluster separation, loose-node grid and the LR/TB choice (docs/draw.js:143).",
+  "L4: arch_digest.py auto-expand and noise filters (skill/scripts/arch_digest.py:144-162)."
+ ]
+}

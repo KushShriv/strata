@@ -1,0 +1,658 @@
+{
+ "schema": "strata/1",
+ "repo": {
+  "name": "the-thinking-behind",
+  "url": "https://github.com/KushShriv/the-thinking-behind",
+  "commit": "f796781",
+  "generated": "2026-11-13",
+  "languages": [
+   {
+    "lang": "JavaScript",
+    "files": 5,
+    "lines": 1283
+   },
+   {
+    "lang": "Shell",
+    "files": 4,
+    "lines": 148
+   }
+  ],
+  "levels": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ]
+ },
+ "confidence": {
+  "score": 85,
+  "label": "High",
+  "basis": "Read seal.mjs, build.mjs, build.test.mjs and the deploy workflow in full, and the state, draw, lock, prompt and copy code in app.js and the load and key code in scoreboard/app.js. Not read: styles and animation code. demo.js is git-ignored, so its content is unknown. The AI step is a manual paste; the code only writes the clipboard."
+ },
+ "l0": {
+  "shape": "Two static browser pages (the journal and a camera scoreboard) plus offline Node scripts that seal the content and build the public site. No server.",
+  "summary": "A decision-practice tool and a prop for videos. Classic mode shows a real story that stops before the decision. The reader writes a call and a reason, and the page builds a coaching prompt to paste into any AI tool; the page never gives the answer. Arcade mode is a quick quiz that shows the answer and sources after the guess is locked. All progress stays in localStorage. Entries come from a sealed list (XOR with a fixed key, then base64; this hides entries from accidental reading, it is not encryption) that seal.mjs writes and that is never deployed: the public build ships an empty list. A separate scoreboard page reads score.json and is filmed behind the presenter.",
+  "stack": [
+   "JavaScript (no framework, no runtime deps)",
+   "HTML + CSS",
+   "Web Animations + View Transitions",
+   "localStorage",
+   "Node 22 + esbuild (build only)",
+   "GitHub Actions → GitHub Pages"
+  ],
+  "entry_points": [
+   {
+    "path": "index.html",
+    "role": "journal page; loads sealed.js, demo.js (local only) and app.js"
+   },
+   {
+    "path": "scoreboard/index.html",
+    "role": "scoreboard page"
+   },
+   {
+    "path": "seal.mjs",
+    "role": "node seal.mjs entries.json: adds entries to sealed.js"
+   },
+   {
+    "path": "build.mjs",
+    "role": "npm run build / npm test: writes the public _site/"
+   },
+   {
+    "path": "start.sh",
+    "role": "local preview on 127.0.0.1:8765 (python http.server)"
+   }
+  ]
+ },
+ "systems": [
+  {
+   "id": "journal",
+   "name": "Journal app",
+   "status": "active",
+   "launcher": "GitHub Pages root, or open index.html",
+   "status_basis": "index.html:12 loads app.js; deploy.yml publishes it",
+   "summary": "The Classic and Arcade practice page. Runs fully in the browser."
+  },
+  {
+   "id": "scoreboard",
+   "name": "Scoreboard",
+   "status": "active",
+   "launcher": "scoreboard/serve.sh, or Pages /scoreboard/",
+   "status_basis": "own index.html and app.js; it shares no code or state with the journal, only a link",
+   "summary": "A full-screen match board filmed behind the presenter."
+  },
+  {
+   "id": "toolchain",
+   "name": "Authoring and publishing",
+   "status": "active",
+   "launcher": "by hand (node, npm, ./start.sh) and GitHub Actions",
+   "status_basis": "deploy.yml runs on push to main",
+   "summary": "Scripts that seal entries, build and test the public site, and preview it locally."
+  }
+ ],
+ "components": [
+  {
+   "id": "journal",
+   "name": "Journal page",
+   "system": "journal",
+   "kind": "frontend",
+   "tech": "vanilla JS IIFE",
+   "paths": [
+    "index.html",
+    "app.js",
+    "styles.css"
+   ],
+   "entry": "app.js:1",
+   "summary": "Draws an entry at random, takes the reader's call and reason, builds the AI prompt, and records the verdict.",
+   "evidence": [
+    "app.js:529",
+    "app.js:44"
+   ]
+  },
+  {
+   "id": "progress",
+   "name": "Saved progress",
+   "system": "journal",
+   "kind": "store",
+   "tech": "localStorage 'ttb-modes'",
+   "summary": "Per mode: the open entry, its stage and drafts, and the spent entries. Lets a reload return to the same entry.",
+   "evidence": [
+    "app.js:4",
+    "app.js:89",
+    "app.js:98"
+   ]
+  },
+  {
+   "id": "sealed",
+   "name": "Sealed list",
+   "system": null,
+   "kind": "store",
+   "tech": "sealed.js → window.TTB_SEALED",
+   "summary": "Classic and Arcade entries, each XOR-ed with 'the-thinking-behind' and base64-encoded. Git-ignored; the public build writes an empty one.",
+   "evidence": [
+    "seal.mjs:19",
+    "app.js:18",
+    "build.mjs:64"
+   ]
+  },
+  {
+   "id": "ai",
+   "name": "Reader's AI tool",
+   "system": null,
+   "kind": "external",
+   "tech": "any chat AI",
+   "summary": "Gets the coaching prompt by a manual paste. The page has no API call.",
+   "evidence": [
+    "app.js:737"
+   ]
+  },
+  {
+   "id": "seal",
+   "name": "Seal script",
+   "system": "toolchain",
+   "kind": "cli",
+   "tech": "Node ESM",
+   "paths": [
+    "seal.mjs"
+   ],
+   "entry": "seal.mjs:1",
+   "summary": "Checks every entry first, skips duplicate questions, and appends the rest to the sealed list. Prints counts only.",
+   "evidence": [
+    "seal.mjs:67",
+    "seal.mjs:83"
+   ]
+  },
+  {
+   "id": "entries",
+   "name": "entries.json",
+   "system": "toolchain",
+   "kind": "store",
+   "tech": "JSON, git-ignored",
+   "summary": "The plain-text input to the seal script. The README says to delete it after sealing.",
+   "evidence": [
+    "seal.mjs:55"
+   ]
+  },
+  {
+   "id": "build",
+   "name": "Public build",
+   "system": "toolchain",
+   "kind": "cli",
+   "tech": "esbuild 0.25 + node:test",
+   "paths": [
+    "build.mjs",
+    "build.test.mjs",
+    "package.json"
+   ],
+   "entry": "build.mjs:16",
+   "summary": "Copies an allowlist into _site/, minifies, adds content hashes, drops demo.js, and writes an empty sealed list. The test checks the file list and every asset reference.",
+   "evidence": [
+    "build.mjs:9",
+    "build.test.mjs:11"
+   ]
+  },
+  {
+   "id": "ci",
+   "name": "Deploy workflow",
+   "system": "toolchain",
+   "kind": "infra",
+   "tech": "GitHub Actions",
+   "summary": "On push to main: npm ci, npm test, then upload _site/ to Pages.",
+   "evidence": [
+    ".github/workflows/deploy.yml:33"
+   ]
+  },
+  {
+   "id": "pages",
+   "name": "GitHub Pages",
+   "system": null,
+   "kind": "external",
+   "tech": "static hosting",
+   "summary": "Serves the app at the root and the scoreboard at /scoreboard/.",
+   "evidence": [
+    ".github/workflows/deploy.yml:41"
+   ]
+  },
+  {
+   "id": "preview",
+   "name": "Dev scripts",
+   "system": "toolchain",
+   "kind": "cli",
+   "tech": "bash + Python http.server",
+   "paths": [
+    "setup.sh",
+    "start.sh",
+    "stop.sh"
+   ],
+   "entry": "start.sh:9",
+   "summary": "setup.sh installs graphify in .venv; start.sh and stop.sh run a local preview with a saved PID.",
+   "evidence": [
+    "start.sh:47",
+    "stop.sh:19"
+   ]
+  },
+  {
+   "id": "scoreboard",
+   "name": "Scoreboard page",
+   "system": "scoreboard",
+   "kind": "frontend",
+   "tech": "vanilla JS + Web Audio",
+   "paths": [
+    "scoreboard/"
+   ],
+   "entry": "scoreboard/app.js:1",
+   "summary": "Shows the player-vs-sources record. K and S add unsaved points with a bell or buzzer for filming.",
+   "evidence": [
+    "scoreboard/app.js:209"
+   ]
+  },
+  {
+   "id": "score",
+   "name": "score.json",
+   "system": "scoreboard",
+   "kind": "store",
+   "tech": "JSON",
+   "summary": "Names, the r/w guess record and screen dimming.",
+   "evidence": [
+    "scoreboard/score.json:1"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "from": "journal",
+   "to": "sealed",
+   "protocol": "import",
+   "label": "script tag → window.TTB_SEALED",
+   "evidence": [
+    "index.html:10",
+    "app.js:18"
+   ]
+  },
+  {
+   "from": "journal",
+   "to": "progress",
+   "protocol": "db",
+   "label": "load / save state",
+   "evidence": [
+    "app.js:89",
+    "app.js:98"
+   ]
+  },
+  {
+   "from": "journal",
+   "to": "ai",
+   "protocol": "other",
+   "label": "copy prompt; reader pastes",
+   "evidence": [
+    "app.js:737"
+   ]
+  },
+  {
+   "from": "journal",
+   "to": "scoreboard",
+   "protocol": "http",
+   "label": "home-page link",
+   "evidence": [
+    "index.html:66"
+   ]
+  },
+  {
+   "from": "scoreboard",
+   "to": "score",
+   "protocol": "http",
+   "label": "fetch, no-store",
+   "evidence": [
+    "scoreboard/app.js:156"
+   ]
+  },
+  {
+   "from": "seal",
+   "to": "entries",
+   "protocol": "storage",
+   "label": "read + validate",
+   "evidence": [
+    "seal.mjs:55"
+   ]
+  },
+  {
+   "from": "seal",
+   "to": "sealed",
+   "protocol": "storage",
+   "label": "append sealed entries",
+   "evidence": [
+    "seal.mjs:83"
+   ]
+  },
+  {
+   "from": "build",
+   "to": "journal",
+   "protocol": "storage",
+   "label": "minify + hash",
+   "evidence": [
+    "build.mjs:35"
+   ]
+  },
+  {
+   "from": "build",
+   "to": "scoreboard",
+   "protocol": "storage",
+   "label": "minify + hash",
+   "evidence": [
+    "build.mjs:35"
+   ]
+  },
+  {
+   "from": "build",
+   "to": "sealed",
+   "protocol": "storage",
+   "label": "writes EMPTY public copy",
+   "evidence": [
+    "build.mjs:64"
+   ]
+  },
+  {
+   "from": "ci",
+   "to": "build",
+   "protocol": "exec",
+   "label": "npm ci && npm test",
+   "evidence": [
+    ".github/workflows/deploy.yml:33"
+   ]
+  },
+  {
+   "from": "ci",
+   "to": "pages",
+   "protocol": "http",
+   "label": "upload _site/, deploy",
+   "evidence": [
+    ".github/workflows/deploy.yml:36"
+   ]
+  },
+  {
+   "from": "preview",
+   "to": "journal",
+   "protocol": "http",
+   "label": "serves on 127.0.0.1",
+   "evidence": [
+    "start.sh:47"
+   ]
+  }
+ ],
+ "modules": [
+  {
+   "id": "app.js",
+   "name": "app.js",
+   "component": "journal",
+   "summary": "All journal logic in one IIFE: state, draw, sheet stages, prompt, motion and keys.",
+   "symbols": 48,
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "draw() (app.js:L529)",
+    "renderSheet() (app.js:L251)",
+    "buildPrompt() (app.js:L44)",
+    "unseal() (app.js:L37)",
+    "randomInt() (app.js:L116)",
+    "finish() (app.js:L594)"
+   ]
+  },
+  {
+   "id": "seal.mjs",
+   "name": "seal.mjs",
+   "component": "seal",
+   "summary": "Validate, de-duplicate and seal entries.",
+   "symbols": 15,
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "problem() (seal.mjs:L33)",
+    "seal() (seal.mjs:L24)",
+    "unseal() (seal.mjs:L25)",
+    "normal() (seal.mjs:L26)"
+   ]
+  },
+  {
+   "id": "build.mjs",
+   "name": "build.mjs",
+   "component": "build",
+   "summary": "Allowlist build into _site/.",
+   "symbols": 6,
+   "fan_in": 1,
+   "fan_out": 0,
+   "key_symbols": [
+    "build() (build.mjs:L16)",
+    "emit() (build.mjs:L21)"
+   ]
+  },
+  {
+   "id": "build.test.mjs",
+   "name": "build.test.mjs",
+   "component": "build",
+   "summary": "Runs the build and checks the public file set and references.",
+   "symbols": 1,
+   "fan_in": 0,
+   "fan_out": 1,
+   "key_symbols": [
+    "public build test (build.test.mjs:L6)"
+   ]
+  },
+  {
+   "id": "scoreboard/app.js",
+   "name": "scoreboard/app.js",
+   "component": "scoreboard",
+   "summary": "Reads score.json, lays out the board, plays generated sounds.",
+   "symbols": 27,
+   "fan_in": 0,
+   "fan_out": 0,
+   "key_symbols": [
+    "read() (scoreboard/app.js:L154)",
+    "draw() (scoreboard/app.js:L121)",
+    "fit() (scoreboard/app.js:L104)",
+    "playPoint() (scoreboard/app.js:L194)"
+   ]
+  },
+  {
+   "id": "start.sh",
+   "name": "start.sh",
+   "component": "preview",
+   "summary": "Start the local preview; refuse a busy port.",
+   "symbols": 2,
+   "fan_in": 0,
+   "fan_out": 0
+  },
+  {
+   "id": "stop.sh",
+   "name": "stop.sh",
+   "component": "preview",
+   "summary": "Stop only the preview this script started.",
+   "symbols": 2,
+   "fan_in": 0,
+   "fan_out": 0
+  },
+  {
+   "id": "setup.sh",
+   "name": "setup.sh",
+   "component": "preview",
+   "summary": "Create .venv, install graphify, build the graph.",
+   "symbols": 2,
+   "fan_in": 0,
+   "fan_out": 0
+  }
+ ],
+ "module_links": [
+  {
+   "from": "build.test.mjs",
+   "to": "build.mjs",
+   "weight": 1
+  }
+ ],
+ "flows": [
+  {
+   "id": "classic-round",
+   "name": "Play a Classic entry",
+   "trigger": "Space on the journal",
+   "system": "journal",
+   "steps": [
+    {
+     "from": "journal",
+     "to": "progress",
+     "action": "draw(): fair random pick; save it before the animation, so a reload cannot reroll",
+     "evidence": "app.js:536"
+    },
+    {
+     "from": "journal",
+     "to": "sealed",
+     "action": "renderSheet(): unseal only the drawn entry",
+     "evidence": "app.js:253"
+    },
+    {
+     "from": "journal",
+     "to": "progress",
+     "action": "lock(): needs call + reason; stage = locked",
+     "evidence": "app.js:640"
+    },
+    {
+     "from": "journal",
+     "to": "ai",
+     "action": "P: copy buildPrompt() text to the clipboard",
+     "evidence": "app.js:737"
+    },
+    {
+     "from": "ai",
+     "to": "journal",
+     "action": "reader reads the verdict and presses Y / H / N",
+     "reply": true,
+     "evidence": "app.js:697"
+    },
+    {
+     "from": "journal",
+     "to": "progress",
+     "action": "finish(): mark the entry spent; it never comes back",
+     "evidence": "app.js:598"
+    }
+   ]
+  },
+  {
+   "id": "add-entries",
+   "name": "Add entries to the list",
+   "trigger": "node seal.mjs entries.json",
+   "system": "toolchain",
+   "steps": [
+    {
+     "from": "seal",
+     "to": "entries",
+     "action": "read the JSON array",
+     "evidence": "seal.mjs:55"
+    },
+    {
+     "from": "seal",
+     "to": "sealed",
+     "action": "read existing lists; collect their questions",
+     "evidence": "seal.mjs:64"
+    },
+    {
+     "from": "seal",
+     "to": "entries",
+     "action": "check every entry first; one bad entry changes nothing",
+     "evidence": "seal.mjs:67"
+    },
+    {
+     "from": "seal",
+     "to": "sealed",
+     "action": "append new entries at the end (records use positions); print counts",
+     "evidence": "seal.mjs:83"
+    }
+   ]
+  },
+  {
+   "id": "deploy",
+   "name": "Publish to GitHub Pages",
+   "trigger": "push to main",
+   "system": "toolchain",
+   "steps": [
+    {
+     "from": "ci",
+     "to": "build",
+     "action": "npm ci, npm test",
+     "evidence": ".github/workflows/deploy.yml:33"
+    },
+    {
+     "from": "build",
+     "to": "journal",
+     "action": "minify + hash app and styles; strip the demo.js tag",
+     "evidence": "build.mjs:50"
+    },
+    {
+     "from": "build",
+     "to": "sealed",
+     "action": "write an empty sealed.js",
+     "evidence": "build.mjs:64"
+    },
+    {
+     "from": "build",
+     "to": "ci",
+     "action": "test: 16 files, allowlisted names, no demo text, every reference resolves",
+     "reply": true,
+     "evidence": "build.test.mjs:11"
+    },
+    {
+     "from": "ci",
+     "to": "pages",
+     "action": "upload _site/ and deploy",
+     "evidence": ".github/workflows/deploy.yml:36"
+    }
+   ]
+  },
+  {
+   "id": "score",
+   "name": "Film a score change",
+   "trigger": "K or S on the scoreboard",
+   "system": "scoreboard",
+   "steps": [
+    {
+     "from": "scoreboard",
+     "to": "score",
+     "action": "fetch score.json (no cache)",
+     "evidence": "scoreboard/app.js:156"
+    },
+    {
+     "from": "score",
+     "to": "scoreboard",
+     "action": "names, r/w record, dim",
+     "reply": true,
+     "evidence": "scoreboard/app.js:162"
+    },
+    {
+     "from": "scoreboard",
+     "to": "score",
+     "action": "K / S add an unsaved point; the file is edited by hand later",
+     "evidence": "scoreboard/app.js:214"
+    }
+   ]
+  }
+ ],
+ "deep_dives": [
+  {
+   "id": "sealing",
+   "target": "sealed",
+   "title": "The sealed list",
+   "markdown": "## What it is\nEach entry is `JSON.stringify`-ed, XOR-ed byte by byte with the key `the-thinking-behind`, then base64-encoded (`seal.mjs:23-24`). The page has the same key and decodes **one entry only when it is drawn** (`unseal()`, `app.js:37`).\n\n## What it protects against\nAccidental reading. The key is in the page source, so anyone can decode the list. The README says so. The real protection is that the list is **never published**:\n\n| Guard | Where |\n|---|---|\n| `sealed.js` and `entries.json` are git-ignored | `.gitignore:2-3` |\n| The build copies an allowlist, never the repo | `build.mjs:9` |\n| The build writes an empty `window.TTB_SEALED` | `build.mjs:64` |\n| The test fails on any other file name or on demo text | `build.test.mjs:12-28` |\n\n## Why positions matter\nProgress is stored by entry **index** (`spent[index]`, `app.js:598`). So `seal.mjs` only appends, and de-duplicates by a normalised question (`seal.mjs:26`, `:64`). Reordering the list would mark the wrong entries as used.\n\n## Consequence\nThe public site shows an empty state in both modes until a reviewed public list exists (README)."
+  },
+  {
+   "id": "draw",
+   "target": "journal",
+   "title": "Fair draw, no rerolls",
+   "markdown": "## Pick\n`randomInt()` (`app.js:116`) uses `crypto.getRandomValues` with **rejection sampling**: it drops values above the largest multiple of the pool size, so every remaining entry has the same chance.\n\n## Commit before showing\n`draw()` writes `current = {index, stage: 'open'}` to localStorage **before** the book or level-reel animation starts (`app.js:535-537`). A reload during the animation returns to the same entry (`showView()`, `app.js:526`).\n\n## Stages\n`open → locked → verdict → card` for Classic and `open → answer → card` for Arcade. Every move goes through `stageIs()` (`app.js:605`) and is saved at once.\n\n| Action | Guard |\n|---|---|\n| Skip | two presses within 3 s; only while `open` (`app.js:607`) |\n| Lock | needs both call and reason (`app.js:633`) |\n| Finish | records `rejected`, `closed`, `got` or `missed`, clears `current` (`app.js:594`) |\n\nAfter lock there is no path back to `open`, so a topic cannot be rejected once seen."
+  }
+ ],
+ "blind_spots": [
+  "The graph has no links between files: the browser scripts share globals (window.TTB_SEALED, window.TTB_STORE_KEY), not imports. Links were found by reading the code.",
+  "demo.js is git-ignored, so its content and how it sets TTB_STORE_KEY were not seen.",
+  "The AI step is a manual paste by the reader; nothing in the code calls an AI."
+ ],
+ "next_zoom": [
+  "L4: motion — bookTimeline, runLevelReel, powerOn/powerOff (app.js:367-470).",
+  "L4: keyboard map in the keydown handler (app.js:770)."
+ ]
+}
