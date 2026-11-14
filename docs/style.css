@@ -5,6 +5,7 @@
   --card: #e0efed; --line: #b8d5d2; --accent: #2b7068;
   --hover: #d1e7e2; --focus: #246e85; --ok: #2b7068; --warn: #8a5a12;
   --exec: #6d5a96;
+  --logo-1: #7f97c9; --logo-2: #5f9e8f; --logo-3: #c4a06a;
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
@@ -12,6 +13,7 @@
   --card: #29454d; --line: #45666c; --accent: #9bd0bd;
   --hover: #34565b; --focus: #9acbdf; --ok: #9bd0bd; --warn: #e6c27a;
   --exec: #c4b2ea;
+  --logo-1: #a9bde3; --logo-2: #9bd0bd; --logo-3: #e6c99a;
 }
 html { --wrap: 860px; --hand: "Architects Daughter", "Segoe Print", "Comic Sans MS", cursive; }
 @media (min-width: 1000px) { html { --wrap: 1080px; } }
@@ -31,9 +33,9 @@ header.top { position: sticky; top: 0; z-index: 10; background: color-mix(in srg
 .app-mode .top-in { max-width: none; }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 650; color: var(--fg); text-decoration: none; white-space: nowrap; }
 .brand svg { width: 22px; height: 22px; }
-.brand .l1 { fill: var(--accent); }
-.brand .l2, .brand .l3 { fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
-.brand .l3 { opacity: .55; }
+.brand .l1 { fill: var(--logo-1); }
+.brand .l2, .brand .l3 { fill: none; stroke: var(--logo-2); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+.brand .l3 { stroke: var(--logo-3); }
 .repo { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .repo .sep { color: var(--line); font-size: 20px; }
 .repo a { color: var(--fg); font-weight: 600; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
